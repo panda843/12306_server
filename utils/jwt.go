@@ -19,10 +19,10 @@ type _Payload struct{
 	Sub string `json:"sub"` //Subject，主题
 	Aud string `json:"aud"` //Audience，观众
 	Data string `json:"data"` //请求数据
-	Exp int64 `json:exp` //Expiration time，过期时间
-	Nbf int64 `json:nbf` //Not before
-	Iat int64 `json:iat` //Issued at，发行时间
-	Jti int64 `json:jti` //JWT ID
+	Exp int64 `json:"exp"` //Expiration time，过期时间
+	Nbf int64 `json:"nbf"` //Not before
+	Iat int64 `json:"iat"` //Issued at，发行时间
+	Jti int64 `json:"jti"` //JWT ID
 }
 
 type Jwt struct{}
