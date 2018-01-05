@@ -20,6 +20,11 @@ import (
 func init() {
 	ns := beego.NewNamespace("/v1",
 		beego.NSRouter("/auth/login", &controllers.UserController{}, "Post:Login"),
+		beego.NSNamespace("/*",
+            //Options用于跨域复杂请求预检
+			beego.NSRouter("/*", &controllers.BaseController{}, "Options:Options"),
+        ),
+		beego.NSRouter("/*", &controllers.BaseController{}, "Options:Options"),
 		beego.NSNamespace("/user",
 			beego.NSBefore(Auth),
 			beego.NSInclude(
@@ -37,29 +42,32 @@ func init() {
 }
 
 func Auth(ctx *context.Context) {
-	authString := ctx.Input.Header("Authorization")
-	beego.Debug("AuthString:", authString)
-	if authString == "" {
+	defer func(){
 		ctx.Output.Header("Cache-Control", "no-store")
-		ctx.Output.Header("WWW-Authenticate", "Bearer realm=\""+beego.AppConfig.String("HostName")+"\" error=\"Authorization\" error_description=\"invalid Authorization\"")
+		ctx.Output.Header("Access-Control-Allow-Origin", "*")
+		ctx.Output.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE,OPTIONS")
+		ctx.Output.Header("Access-Control-Allow-Headers", "Authorization")
+		ctx.Output.Header("WWW-Authenticate", `Bearer realm="`+beego.AppConfig.String("HostName")+`" error="Authorization" error_description="invalid Authorization"`)
 		http.Error(ctx.ResponseWriter, "Unauthorized", 401)
-		return
-	}
-	kv := strings.Split(authString, " ")
-	if len(kv) != 2 || kv[0] != "Bearer" {
-		ctx.Output.Header("Cache-Control", "no-store")
-		ctx.Output.Header("WWW-Authenticate", "Bearer realm=\""+beego.AppConfig.String("HostName")+"\" error=\"Authorization\" error_description=\"invalid Authorization\"")
-		http.Error(ctx.ResponseWriter, "Unauthorized", 401)
-		return
-	}
-	token := kv[1]
-	beego.Debug(token)
-	jwt := &utils.Jwt{}
-	jwt.SetSecretKey(beego.AppConfig.String("JwtKey"))
-	if !jwt.Checkd(token) {
-		ctx.Output.Header("Cache-Control", "no-store")
-		ctx.Output.Header("WWW-Authenticate", "Bearer realm=\""+beego.AppConfig.String("HostName")+"\" error=\"Authorization\" error_description=\"invalid Authorization\"")
-		http.Error(ctx.ResponseWriter, "Unauthorized", 401)
-		return
+	}()
+	if !ctx.Input.Is("OPTIONS") {
+		authString := ctx.Input.Header("Authorization")
+		_authString := ctx.Input.Header("authorization")
+		beego.Debug("AuthString:", authString)
+		beego.Debug("authString:", _authString)
+		if authString == "" {
+			return
+		}
+		kv := strings.Split(authString, " ")
+		if len(kv) != 2 || kv[0] != "Bearer" {
+			return
+		}
+		token := kv[1]
+		beego.Debug(token)
+		jwt := &utils.Jwt{}
+		jwt.SetSecretKey(beego.AppConfig.String("JwtKey"))
+		if !jwt.Checkd(token) {
+			return
+		}
 	}
 }

@@ -7,7 +7,7 @@ import (
 
 func init() {
 
-	beego.GlobalControllerRouter["12306/controllers:ScheduleController"] = append(beego.GlobalControllerRouter["12306/controllers:ScheduleController"],
+	beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:ScheduleController"] = append(beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:ScheduleController"],
 		beego.ControllerComments{
 			Method: "Get",
 			Router: `/`,
@@ -15,7 +15,7 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
-	beego.GlobalControllerRouter["12306/controllers:UserController"] = append(beego.GlobalControllerRouter["12306/controllers:UserController"],
+	beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:UserController"] = append(beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:UserController"],
 		beego.ControllerComments{
 			Method: "Post",
 			Router: `/`,
@@ -23,7 +23,7 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
-	beego.GlobalControllerRouter["12306/controllers:UserController"] = append(beego.GlobalControllerRouter["12306/controllers:UserController"],
+	beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:UserController"] = append(beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:UserController"],
 		beego.ControllerComments{
 			Method: "GetAll",
 			Router: `/`,
@@ -31,7 +31,7 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
-	beego.GlobalControllerRouter["12306/controllers:UserController"] = append(beego.GlobalControllerRouter["12306/controllers:UserController"],
+	beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:UserController"] = append(beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:UserController"],
 		beego.ControllerComments{
 			Method: "Get",
 			Router: `/:uid`,
@@ -39,7 +39,7 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
-	beego.GlobalControllerRouter["12306/controllers:UserController"] = append(beego.GlobalControllerRouter["12306/controllers:UserController"],
+	beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:UserController"] = append(beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:UserController"],
 		beego.ControllerComments{
 			Method: "Put",
 			Router: `/:uid`,
@@ -47,7 +47,7 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
-	beego.GlobalControllerRouter["12306/controllers:UserController"] = append(beego.GlobalControllerRouter["12306/controllers:UserController"],
+	beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:UserController"] = append(beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:UserController"],
 		beego.ControllerComments{
 			Method: "Delete",
 			Router: `/:uid`,
@@ -55,7 +55,7 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
-	beego.GlobalControllerRouter["12306/controllers:UserController"] = append(beego.GlobalControllerRouter["12306/controllers:UserController"],
+	beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:UserController"] = append(beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:UserController"],
 		beego.ControllerComments{
 			Method: "Logout",
 			Router: `/logout`,

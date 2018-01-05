@@ -1,8 +1,7 @@
 package main
 
 import (
-	_ "12306/routers"
-
+	_ "github.com/chuanshuo843/12306_server/routers"
 	"github.com/astaxie/beego"
 )
 
