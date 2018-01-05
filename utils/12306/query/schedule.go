@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"ganktools.com/12306_server/utils/12306/config"
 	"github.com/astaxie/beego"
+	"github.com/chuanshuo843/12306_server/utils/12306/config"
 )
 
 type Schedule struct {

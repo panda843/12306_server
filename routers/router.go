@@ -9,16 +9,17 @@ package routers
 
 import (
 	"net/http"
-	"12306/controllers"
 	"strings"
-	"12306/utils"
-	"github.com/astaxie/beego/context"
+
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/context"
+	"github.com/chuanshuo843/12306_server/controllers"
+	"github.com/chuanshuo843/12306_server/utils"
 )
 
 func init() {
 	ns := beego.NewNamespace("/v1",
-		beego.NSRouter("/auth/login",&controllers.UserController{},"Post:Login"),
+		beego.NSRouter("/auth/login", &controllers.UserController{}, "Post:Login"),
 		beego.NSNamespace("/user",
 			beego.NSBefore(Auth),
 			beego.NSInclude(
@@ -35,29 +36,29 @@ func init() {
 	beego.AddNamespace(ns)
 }
 
-func Auth(ctx *context.Context){
+func Auth(ctx *context.Context) {
 	authString := ctx.Input.Header("Authorization")
-    beego.Debug("AuthString:", authString)
-	if authString == ""{
-		ctx.Output.Header("Cache-Control","no-store")
-		ctx.Output.Header("WWW-Authenticate","Bearer realm=\""+beego.AppConfig.String("HostName")+"\" error=\"Authorization\" error_description=\"invalid Authorization\"")
+	beego.Debug("AuthString:", authString)
+	if authString == "" {
+		ctx.Output.Header("Cache-Control", "no-store")
+		ctx.Output.Header("WWW-Authenticate", "Bearer realm=\""+beego.AppConfig.String("HostName")+"\" error=\"Authorization\" error_description=\"invalid Authorization\"")
 		http.Error(ctx.ResponseWriter, "Unauthorized", 401)
 		return
 	}
-    kv := strings.Split(authString, " ")
-    if len(kv) != 2 || kv[0] != "Bearer" {
-		ctx.Output.Header("Cache-Control","no-store")
-		ctx.Output.Header("WWW-Authenticate","Bearer realm=\""+beego.AppConfig.String("HostName")+"\" error=\"Authorization\" error_description=\"invalid Authorization\"")
+	kv := strings.Split(authString, " ")
+	if len(kv) != 2 || kv[0] != "Bearer" {
+		ctx.Output.Header("Cache-Control", "no-store")
+		ctx.Output.Header("WWW-Authenticate", "Bearer realm=\""+beego.AppConfig.String("HostName")+"\" error=\"Authorization\" error_description=\"invalid Authorization\"")
 		http.Error(ctx.ResponseWriter, "Unauthorized", 401)
 		return
-    }
+	}
 	token := kv[1]
 	beego.Debug(token)
 	jwt := &utils.Jwt{}
 	jwt.SetSecretKey(beego.AppConfig.String("JwtKey"))
 	if !jwt.Checkd(token) {
-		ctx.Output.Header("Cache-Control","no-store")
-		ctx.Output.Header("WWW-Authenticate","Bearer realm=\""+beego.AppConfig.String("HostName")+"\" error=\"Authorization\" error_description=\"invalid Authorization\"")
+		ctx.Output.Header("Cache-Control", "no-store")
+		ctx.Output.Header("WWW-Authenticate", "Bearer realm=\""+beego.AppConfig.String("HostName")+"\" error=\"Authorization\" error_description=\"invalid Authorization\"")
 		http.Error(ctx.ResponseWriter, "Unauthorized", 401)
 		return
 	}

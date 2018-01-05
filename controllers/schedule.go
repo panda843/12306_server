@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	tools "ganktools.com/12306_server/utils/12306/query"
 	"github.com/astaxie/beego"
+	tools "github.com/chuanshuo843/12306_server/utils/12306/query"
 )
 
 // ScheduleController Operations about object
