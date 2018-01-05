@@ -25,6 +25,12 @@ func init() {
 				&controllers.UserController{},
 			),
 		),
+		beego.NSNamespace("/schedule",
+			beego.NSBefore(Auth),
+			beego.NSInclude(
+				&controllers.ScheduleController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }

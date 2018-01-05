@@ -130,12 +130,8 @@ func (jwt *Jwt) Checkd(token string) bool {
 	if initPayload.Exp <= time.Now().Unix(){
 		return false
 	}
-	//检测签发时间
-	if initPayload.Iat >= time.Now().Unix(){
-		return false
-	}
 	//检测什么时间之后可用
-	if initPayload.Nbf <= time.Now().Unix(){
+	if initPayload.Nbf >= time.Now().Unix(){
 		return false
 	}
 	return true
