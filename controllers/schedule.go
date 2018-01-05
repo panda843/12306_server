@@ -1,11 +1,11 @@
 package controllers
 
 import (
+	tools "ganktools.com/12306_server/utils/12306/query"
 	"github.com/astaxie/beego"
-	tools "12306/utils/12306/query"
 )
 
-// Operations about object
+// ScheduleController Operations about object
 type ScheduleController struct {
 	BaseController
 }
@@ -18,8 +18,8 @@ type ScheduleController struct {
 // @router / [get]
 func (s *ScheduleController) Get() {
 	schedule := &tools.Schedule{}
-	is_ok,msg := schedule.Query("2018-01-08","BJP","CDW","ADULT")
-	if is_ok{
+	is_ok, msg := schedule.Query("2018-01-08", "BJP", "CDW", "ADULT")
+	if is_ok {
 
 	}
 	beego.Debug(msg)
