@@ -19,22 +19,20 @@ import (
 
 func init() {
 	ns := beego.NewNamespace("/v1",
+		//登录
 		beego.NSRouter("/auth/login", &controllers.UserController{}, "Post:Login"),
-		beego.NSNamespace("/*",
-            //Options用于跨域复杂请求预检
-			beego.NSRouter("/*", &controllers.BaseController{}, "Options:Options"),
-        ),
-		beego.NSRouter("/*", &controllers.BaseController{}, "Options:Options"),
-		beego.NSNamespace("/user",
-			beego.NSBefore(Auth),
-			beego.NSInclude(
-				&controllers.UserController{},
-			),
-		),
+		//车次处理
 		beego.NSNamespace("/schedule",
 			beego.NSBefore(Auth),
 			beego.NSInclude(
 				&controllers.ScheduleController{},
+			),
+		),
+		//站台处理
+		beego.NSNamespace("/station",
+			beego.NSBefore(Auth),
+			beego.NSInclude(
+				&controllers.StationController{},
 			),
 		),
 	)
@@ -42,32 +40,34 @@ func init() {
 }
 
 func Auth(ctx *context.Context) {
-	defer func(){
-		ctx.Output.Header("Cache-Control", "no-store")
-		ctx.Output.Header("Access-Control-Allow-Origin", "*")
-		ctx.Output.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE,OPTIONS")
-		ctx.Output.Header("Access-Control-Allow-Headers", "Authorization")
-		ctx.Output.Header("WWW-Authenticate", `Bearer realm="`+beego.AppConfig.String("HostName")+`" error="Authorization" error_description="invalid Authorization"`)
-		http.Error(ctx.ResponseWriter, "Unauthorized", 401)
-	}()
+	//只检测OPTIONS以外的请求
 	if !ctx.Input.Is("OPTIONS") {
 		authString := ctx.Input.Header("Authorization")
-		_authString := ctx.Input.Header("authorization")
-		beego.Debug("AuthString:", authString)
-		beego.Debug("authString:", _authString)
 		if authString == "" {
+			AllowCross(ctx)
 			return
 		}
 		kv := strings.Split(authString, " ")
 		if len(kv) != 2 || kv[0] != "Bearer" {
+			AllowCross(ctx)
 			return
 		}
 		token := kv[1]
-		beego.Debug(token)
 		jwt := &utils.Jwt{}
 		jwt.SetSecretKey(beego.AppConfig.String("JwtKey"))
 		if !jwt.Checkd(token) {
+			AllowCross(ctx)
 			return
 		}
 	}
+}
+
+//错误返回
+func AllowCross(ctx *context.Context) {
+	ctx.Output.Header("Cache-Control", "no-store")
+	ctx.Output.Header("Access-Control-Allow-Origin", "*")
+	ctx.Output.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE,OPTIONS")
+	ctx.Output.Header("Access-Control-Allow-Headers", "Authorization")
+	ctx.Output.Header("WWW-Authenticate", `Bearer realm="`+beego.AppConfig.String("HostName")+`" error="Authorization" error_description="invalid Authorization"`)
+	http.Error(ctx.ResponseWriter, "Unauthorized", 401)
 }
