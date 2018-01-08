@@ -101,6 +101,7 @@ func (request *Request) GetHeader(key string) string {
 
 //发送Get请求
 func (request *Request) Get() (bool, string) {
+	beego.Debug(requestURL)
 	client := &http.Client{CheckRedirect: nil, Jar: requestCookieJar}
 	//新建请求
 	clientRequest, errNew := http.NewRequest("GET", requestURL, nil)
@@ -116,6 +117,7 @@ func (request *Request) Get() (bool, string) {
 	}
 	//发送请求
 	clientResponse, errSend := client.Do(clientRequest)
+	beego.Debug(clientResponse)
 	if errSend != nil {
 		return false, "send get request fail"
 	}
@@ -125,7 +127,6 @@ func (request *Request) Get() (bool, string) {
 	defer clientResponse.Body.Close()
 	//获取cookies
 	requestCookie = requestCookieJar.Cookies(clientRequest.URL)
-	beego.Debug(requestCookie)
 	//读取数据
 	body, errRead := ioutil.ReadAll(clientResponse.Body)
 	if clientResponse.StatusCode != 200 {

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"encoding/json"
 	"github.com/astaxie/beego"
 	"github.com/chuanshuo843/12306_server/utils"
 )
@@ -36,7 +37,9 @@ func (s *ScheduleController) Get() {
 		return
 	}
 	//查询init
+	request.IsDisableHeader(true)
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/leftTicket/init")
+	request.SetHeader("X-Requested-With","XMLHttpRequest")
 	isOk, iniData := request.SetURL(fmt.Sprintf(beego.AppConfig.String("12306::URLTrafficInquiryInit"), date, strartStation, endStation)).Get()
 	beego.Info("车次查询init -----> %t", isOk)
 	if !isOk {
@@ -49,5 +52,7 @@ func (s *ScheduleController) Get() {
 	if !queryIsOk {
 		s.Fail().SetMsg(queryData).Send()
 	}
-	s.Success().SetData(queryData).Send()
+	var dat map[string]interface{}
+    json.Unmarshal([]byte(queryData), &dat)
+	s.Success().SetData(dat).Send()
 }
