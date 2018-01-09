@@ -1,15 +1,22 @@
 package utils
 
 import (
+	"github.com/astaxie/beego"
 	"io/ioutil"
 	"net/http"
+	// "bytes"
+	"strings"
+	"net/url"
 	"net/http/cookiejar"
 
-	"github.com/astaxie/beego"
+	_"github.com/astaxie/beego"
+	"golang.org/x/net/publicsuffix"
 )
 
 var requestCookie []*http.Cookie
 var requestCookieJar *cookiejar.Jar
+
+var client http.Client
 
 //url
 var requestURL string
@@ -30,12 +37,22 @@ func init() {
 	isDisableHeader = false
 
 	requestCookie = nil
+	options := cookiejar.Options{
+		PublicSuffixList: publicsuffix.List,
+	}
+	//options := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
 
-	requestCookieJar, _ = cookiejar.New(nil)
+	requestCookieJar, _ = cookiejar.New(&options)
 
 	requestHeader = make(map[string]string)
 
 	responseHeader = make(map[string]string)
+
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	client.Jar = requestCookieJar
+	
 }
 
 //设置Url
@@ -101,7 +118,12 @@ func (request *Request) GetHeader(key string) string {
 
 //发送Get请求
 func (request *Request) Get() (bool, string) {
-	client := &http.Client{CheckRedirect: nil, Jar: requestCookieJar}
+	// client := &http.Client{
+	// 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	// 		return http.ErrUseLastResponse
+	// 	},
+	// 	Jar: requestCookieJar,
+	// }
 	//新建请求
 	clientRequest, errNew := http.NewRequest("GET", requestURL, nil)
 	//设置header
@@ -135,4 +157,92 @@ func (request *Request) Get() (bool, string) {
 		return false, "read get request body fail"
 	}
 	return true, string(body)
+}
+//发送Post请求
+func (request *Request) Post(data *url.Values) (bool, string) {
+	// client := &http.Client{
+	// 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	// 		return http.ErrUseLastResponse
+	// 	},
+	// 	Jar: requestCookieJar,
+	// }
+	beego.Debug(strings.NewReader(data.Encode()))
+	//新建请求 strings.NewReader(s)
+	clientRequest, errNew := http.NewRequest("POST", requestURL, strings.NewReader(data.Encode()))
+	clientRequest.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	//设置header
+	if isDisableHeader {
+		//设置默认Header
+		request._SetDefaultHeader(clientRequest)
+		//设置用户自定义Header
+		request._SetDefineHeader(clientRequest)
+	}
+	if errNew != nil {
+		return false, "create get request fail"
+	}
+	//发送请求
+	clientResponse, errSend := client.Do(clientRequest)
+	if errSend != nil {
+		return false, "send get request fail"
+	}
+	//重置数据
+	request._ResetRequestDefaultData()
+	//关闭Response body
+	defer clientResponse.Body.Close()
+	//获取cookies
+	requestCookie = requestCookieJar.Cookies(clientRequest.URL)
+
+	beego.Debug(requestCookie)
+	//读取数据
+	body, errRead := ioutil.ReadAll(clientResponse.Body)
+	if clientResponse.StatusCode != 200 {
+		return false, string(body)
+	}
+	if errRead != nil {
+		return false, "read get request body fail"
+	}
+	return true, string(body)
+}
+
+//下载文件
+func (request *Request) Download() (bool, []byte) {
+	// client := &http.Client{
+	// 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	// 		return http.ErrUseLastResponse
+	// 	},
+	// 	Jar: requestCookieJar,
+	// }
+	//新建请求
+	clientRequest, errNew := http.NewRequest("GET", requestURL, nil)
+	//设置header
+	if isDisableHeader {
+		//设置默认Header
+		request._SetDefaultHeader(clientRequest)
+		//设置用户自定义Header
+		request._SetDefineHeader(clientRequest)
+	}
+	if errNew != nil {
+		return false, []byte("create get request fail")
+	}
+	//发送请求
+	clientResponse, errSend := client.Do(clientRequest)
+	if errSend != nil {
+		return false, []byte("send get request fail")
+	}
+	//重置数据
+	request._ResetRequestDefaultData()
+	//关闭Response body
+	defer clientResponse.Body.Close()
+	//获取cookies
+	requestCookie = requestCookieJar.Cookies(clientRequest.URL)
+	beego.Debug("download ---------->",requestCookie)
+	//读取数据
+	body, errRead := ioutil.ReadAll(clientResponse.Body)
+	if clientResponse.StatusCode != 200 {
+		return false, body
+	}
+	if errRead != nil {
+		return false, []byte("read get request body fail")
+	}
+	return true, body
 }

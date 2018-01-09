@@ -21,6 +21,7 @@ func init() {
 	ns := beego.NewNamespace("/v1",
 		//登录
 		beego.NSRouter("/auth/login", &controllers.UserController{}, "Post:Login"),
+		beego.NSRouter("/auth/verifyCode", &controllers.UserController{}, "Get:VerifyCode"),
 		//车次处理
 		beego.NSNamespace("/schedule",
 			beego.NSBefore(Auth),

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/astaxie/beego"
 	"github.com/chuanshuo843/12306_server/utils"
@@ -44,10 +45,13 @@ func (s *ScheduleController) Get() {
 		return
 	}
 	//查询信息
-	queryIsOk, queryData := request.SetURL(fmt.Sprintf(beego.AppConfig.String("12306::URLTrafficInquiry"), date, strartStation, endStation)).Get()
+	query_str := string([]byte(cookie)[753:770])
+	queryIsOk, queryData := request.SetURL(fmt.Sprintf(beego.AppConfig.String("12306::URLTrafficInquiry"),query_str, date, strartStation, endStation)).Get()
 	beego.Info("查询车次信息 -----> %t", queryIsOk)
 	if !queryIsOk {
 		s.Fail().SetMsg(queryData).Send()
 	}
-	s.Success().SetData(queryData).Send()
+	var reData map[string]interface{}
+    json.Unmarshal([]byte(queryData), &reData)
+	s.Success().SetData(reData).Send()
 }
