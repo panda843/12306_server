@@ -1,15 +1,16 @@
 package utils
 
 import (
-	"github.com/astaxie/beego"
 	"io/ioutil"
 	"net/http"
-	// "bytes"
-	"strings"
-	"net/url"
-	"net/http/cookiejar"
 
-	_"github.com/astaxie/beego"
+	"github.com/astaxie/beego"
+	// "bytes"
+	"net/http/cookiejar"
+	"net/url"
+	"strings"
+
+	_ "github.com/astaxie/beego"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -52,7 +53,7 @@ func init() {
 		return http.ErrUseLastResponse
 	}
 	client.Jar = requestCookieJar
-	
+
 }
 
 //设置Url
@@ -118,17 +119,6 @@ func (request *Request) GetHeader(key string) string {
 
 //发送Get请求
 func (request *Request) Get() (bool, string) {
-<<<<<<< HEAD
-	beego.Debug(requestURL)
-	client := &http.Client{CheckRedirect: nil, Jar: requestCookieJar}
-=======
-	// client := &http.Client{
-	// 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
-	// 		return http.ErrUseLastResponse
-	// 	},
-	// 	Jar: requestCookieJar,
-	// }
->>>>>>> b97290994232214161b83949a3e4f24eafe40b77
 	//新建请求
 	clientRequest, errNew := http.NewRequest("GET", requestURL, nil)
 	//设置header
@@ -163,6 +153,7 @@ func (request *Request) Get() (bool, string) {
 	}
 	return true, string(body)
 }
+
 //发送Post请求
 func (request *Request) Post(data *url.Values) (bool, string) {
 	// client := &http.Client{
@@ -240,7 +231,7 @@ func (request *Request) Download() (bool, []byte) {
 	defer clientResponse.Body.Close()
 	//获取cookies
 	requestCookie = requestCookieJar.Cookies(clientRequest.URL)
-	beego.Debug("download ---------->",requestCookie)
+	beego.Debug("download ---------->", requestCookie)
 	//读取数据
 	body, errRead := ioutil.ReadAll(clientResponse.Body)
 	if clientResponse.StatusCode != 200 {

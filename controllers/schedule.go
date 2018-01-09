@@ -3,7 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"encoding/json"
+
 	"github.com/astaxie/beego"
 	"github.com/chuanshuo843/12306_server/utils"
 )
@@ -25,7 +25,7 @@ func (s *ScheduleController) Get() {
 	strartStation := s.GetString("out")
 	endStation := s.GetString("in")
 	date := s.GetString("date")
-	if strartStation == "" || endStation == "" || date == ""{
+	if strartStation == "" || endStation == "" || date == "" {
 		s.Fail().SetMsg("请选择正确的站台信息").Send()
 		return
 	}
@@ -40,7 +40,8 @@ func (s *ScheduleController) Get() {
 	//查询init
 	request.IsDisableHeader(true)
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/leftTicket/init")
-	request.SetHeader("X-Requested-With","XMLHttpRequest")
+	request.SetHeader("X-Requested-With", "XMLHttpRequest")
+
 	isOk, iniData := request.SetURL(fmt.Sprintf(beego.AppConfig.String("12306::URLTrafficInquiryInit"), date, strartStation, endStation)).Get()
 	beego.Info("车次查询init -----> %t", isOk)
 	if !isOk {
@@ -49,18 +50,12 @@ func (s *ScheduleController) Get() {
 	}
 	//查询信息
 	query_str := string([]byte(cookie)[753:770])
-	queryIsOk, queryData := request.SetURL(fmt.Sprintf(beego.AppConfig.String("12306::URLTrafficInquiry"),query_str, date, strartStation, endStation)).Get()
+	queryIsOk, queryData := request.SetURL(fmt.Sprintf(beego.AppConfig.String("12306::URLTrafficInquiry"), query_str, date, strartStation, endStation)).Get()
 	beego.Info("查询车次信息 -----> %t", queryIsOk)
 	if !queryIsOk {
-		s.Fail().SetMsg(queryData).Send()
+		s.Fail().SetMsg("查询失败了").Send()
 	}
-<<<<<<< HEAD
-	var dat map[string]interface{}
-    json.Unmarshal([]byte(queryData), &dat)
-	s.Success().SetData(dat).Send()
-=======
 	var reData map[string]interface{}
-    json.Unmarshal([]byte(queryData), &reData)
+	json.Unmarshal([]byte(queryData), &reData)
 	s.Success().SetData(reData).Send()
->>>>>>> b97290994232214161b83949a3e4f24eafe40b77
 }
