@@ -3,7 +3,9 @@ package utils
 import (
 	"io/ioutil"
 	"net/http"
-
+	"crypto/tls"
+	"time"
+	"net"
 	"github.com/astaxie/beego"
 	// "bytes"
 	"net/http/cookiejar"
@@ -49,10 +51,24 @@ func init() {
 
 	responseHeader = make(map[string]string)
 
-	// client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-	// 	return http.ErrUseLastResponse
-	// }
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
 	client.Jar = requestCookieJar
+	client.Transport = &http.Transport{
+		// 12306 https CA认证
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		// TLSClientConfig: &tls.Config{RootCAs: pool},
+		DialContext: (&net.Dialer{
+			Timeout:   60 * time.Second,
+			KeepAlive: 60 * time.Second,
+			DualStack: true,
+		}).DialContext,
+		MaxIdleConns:        100,
+		IdleConnTimeout:     90 * time.Second,
+		TLSHandshakeTimeout: 60 * time.Second,
+	}
+
 
 }
 
@@ -78,7 +94,6 @@ func (request *Request) _SetDefaultHeader(clientRequest *http.Request) *Request 
 	clientRequest.Header.Set("Connection", "keep-alive")
 	clientRequest.Header.Set("Host", "kyfw.12306.cn")
 	clientRequest.Header.Set("Origin", "https://kyfw.12306.cn")
-	clientRequest.Header.Set("If-Modified-Since", "0")
 	clientRequest.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36")
 	return request
 }
@@ -134,7 +149,6 @@ func (request *Request) Get() (bool, string) {
 	}
 	//发送请求
 	clientResponse, errSend := client.Do(clientRequest)
-	beego.Debug(clientResponse)
 	if errSend != nil {
 		return false, "send get request fail"
 	}
@@ -157,12 +171,6 @@ func (request *Request) Get() (bool, string) {
 
 //发送Post请求
 func (request *Request) Post(data *url.Values) (bool, string) {
-	// client := &http.Client{
-	// 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
-	// 		return http.ErrUseLastResponse
-	// 	},
-	// 	Jar: requestCookieJar,
-	// }
 	beego.Debug(strings.NewReader(data.Encode()))
 	//新建请求 strings.NewReader(s)
 	clientRequest, errNew := http.NewRequest("POST", requestURL, strings.NewReader(data.Encode()))
@@ -188,8 +196,6 @@ func (request *Request) Post(data *url.Values) (bool, string) {
 	defer clientResponse.Body.Close()
 	//获取cookies
 	requestCookie = requestCookieJar.Cookies(clientRequest.URL)
-
-	beego.Debug(requestCookie)
 	//读取数据
 	body, errRead := ioutil.ReadAll(clientResponse.Body)
 	if clientResponse.StatusCode != 200 {
@@ -203,12 +209,6 @@ func (request *Request) Post(data *url.Values) (bool, string) {
 
 //下载文件
 func (request *Request) Download() (bool, []byte) {
-	// client := &http.Client{
-	// 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
-	// 		return http.ErrUseLastResponse
-	// 	},
-	// 	Jar: requestCookieJar,
-	// }
 	//新建请求
 	clientRequest, errNew := http.NewRequest("GET", requestURL, nil)
 	//设置header
@@ -232,7 +232,6 @@ func (request *Request) Download() (bool, []byte) {
 	defer clientResponse.Body.Close()
 	//获取cookies
 	requestCookie = requestCookieJar.Cookies(clientRequest.URL)
-	beego.Debug("download ---------->", requestCookie)
 	//读取数据
 	body, errRead := ioutil.ReadAll(clientResponse.Body)
 	if clientResponse.StatusCode != 200 {
