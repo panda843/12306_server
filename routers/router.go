@@ -36,6 +36,13 @@ func init() {
 				&controllers.StationController{},
 			),
 		),
+		//乘客信息
+		beego.NSNamespace("/passenger",
+			beego.NSBefore(Auth),
+			beego.NSInclude(
+				&controllers.PassengerController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }

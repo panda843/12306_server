@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"github.com/astaxie/beego"
-	"github.com/chuanshuo843/12306_server/utils"
 )
 
 // ScheduleController Operations about object
@@ -20,7 +19,6 @@ type ScheduleController struct {
 // @Failure 403 :uid is empty
 // @router / [get]
 func (s *ScheduleController) Get() {
-	request := &utils.Request{}
 	//"2018-01-08", "BJP", "CDW"
 	strartStation := s.GetString("out")
 	endStation := s.GetString("in")
