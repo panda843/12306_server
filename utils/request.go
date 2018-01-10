@@ -49,9 +49,9 @@ func init() {
 
 	responseHeader = make(map[string]string)
 
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
+	// client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	// 	return http.ErrUseLastResponse
+	// }
 	client.Jar = requestCookieJar
 
 }
@@ -77,6 +77,7 @@ func (request *Request) _SetDefaultHeader(clientRequest *http.Request) *Request 
 	clientRequest.Header.Set("Cache-Control", "no-cache")
 	clientRequest.Header.Set("Connection", "keep-alive")
 	clientRequest.Header.Set("Host", "kyfw.12306.cn")
+	clientRequest.Header.Set("Origin", "https://kyfw.12306.cn")
 	clientRequest.Header.Set("If-Modified-Since", "0")
 	clientRequest.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36")
 	return request
