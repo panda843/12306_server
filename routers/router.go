@@ -43,6 +43,13 @@ func init() {
 				&controllers.PassengerController{},
 			),
 		),
+		//订单处理
+		beego.NSNamespace("/order",
+			beego.NSBefore(Auth),
+			beego.NSInclude(
+				&controllers.OrderController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }

@@ -30,19 +30,19 @@ func (s *ScheduleController) Get() {
 	//查询车次Init
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/leftTicket/init")
 	isInitOk, initData := request.SetURL(beego.AppConfig.String("12306::URLLTrafficInquiryInit")).Get()
-	beego.Info("获取Cookies -----> %t", isInitOk)
+	beego.Info("获取Cookies ----->  ", isInitOk)
 	if !isInitOk {
-		s.Fail().SetMsg(initData).Send()
+		s.Fail().SetMsg("车次查询初始化失败").Send()
 		return
 	}
 	//查询车次日志
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/leftTicket/init")
 	request.SetHeader("X-Requested-With", "XMLHttpRequest")
 
-	isLogOk, queryLog := request.SetURL(fmt.Sprintf(beego.AppConfig.String("12306::URLTrafficInquiryLog"), date, strartStation, endStation)).Get()
-	beego.Info("车次查询init -----> %t", isLogOk)
+	isLogOk, _ := request.SetURL(fmt.Sprintf(beego.AppConfig.String("12306::URLTrafficInquiryLog"), date, strartStation, endStation)).Get()
+	beego.Info("车次查询init ----->  ", isLogOk)
 	if !isLogOk {
-		s.Fail().SetMsg(queryLog).Send()
+		s.Fail().SetMsg("车次查询日志调用失败").Send()
 		return
 	}
 
@@ -50,9 +50,9 @@ func (s *ScheduleController) Get() {
 	splData := strings.Split(initData,"\n")
 	queryStr := []byte(splData[13])[23:40]
 	queryIsOk, queryData := request.SetURL(fmt.Sprintf(beego.AppConfig.String("12306::URLTrafficInquiry"), queryStr, date, strartStation, endStation)).Get()
-	beego.Info("查询车次信息 -----> %t", queryIsOk)
+	beego.Info("查询车次信息 ----->  ", queryIsOk)
 	if !queryIsOk {
-		s.Fail().SetMsg("查询失败了").Send()
+		s.Fail().SetMsg("车次查询失败了").Send()
 	}
 	var reData map[string]interface{}
 	json.Unmarshal([]byte(queryData), &reData)

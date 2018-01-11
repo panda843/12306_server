@@ -2,10 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
-	// "fmt"
-	// "strings"
 	"github.com/astaxie/beego"
-	// "github.com/chuanshuo843/12306_server/utils"
 )
 
 // PassengerController Operations about object
@@ -24,9 +21,9 @@ func (p *PassengerController) Get() {
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/confirmPassenger/initDc")
 	request.SetHeader("X-Requested-With","XMLHttpRequest")
 	isGetOk, passengerData := request.SetURL(beego.AppConfig.String("12306::URLGetPassgener")).Get()
-	beego.Info("检测登录用户 -----> %t", isGetOk)
+	beego.Info("获取乘客列表 ----->  ", isGetOk)
 	if !isGetOk {
-		p.Fail().SetMsg(passengerData).Send()
+		p.Fail().SetMsg("乘客列表获取失败").Send()
 		return
 	}
 	var reData map[string]interface{}

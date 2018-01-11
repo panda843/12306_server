@@ -20,9 +20,9 @@ type StationController struct {
 func (s *StationController) Get() {
 	request := &utils.Request{}
 	isOk, data := request.SetURL(beego.AppConfig.String("12306::URLGetStationList")).IsDisableHeader(false).Get()
-	beego.Info("获取站台信息 -----> %t", isOk)
+	beego.Info("获取站台信息 ----->  ", isOk)
 	if !isOk {
-		s.Fail().SetMsg(data).Send()
+		s.Fail().SetMsg("站台信息获取失败").Send()
 		return
 	}
 	formatData := strings.Split(data, "'")
@@ -30,5 +30,7 @@ func (s *StationController) Get() {
 		s.Fail().SetMsg("获取车站信息失败").Send()
 		return
 	}
+	//缓存12个小时
+	s.Ctx.Output.Header("Cache-Control:", "public,max-age=43200")
 	s.Success().SetData(string(formatData[1])).Send()
 }

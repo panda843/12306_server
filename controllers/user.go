@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	"net/http"
 	"github.com/astaxie/beego"
 	"github.com/chuanshuo843/12306_server/utils"
 )
@@ -64,7 +65,7 @@ func (u *UserController) Login() {
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/login/init")
 	request.SetHeader("X-Requested-With","XMLHttpRequest")
 	isInit, checkd := request.SetURL(beego.AppConfig.String("12306::URLCheckVerifyCode")).Post(data)
-	beego.Info("验证码检测 -----> %t  %s", isInit, checkd)
+	beego.Info("验证码检测 ----->  ", isInit, checkd)
 	if !isInit {
 		u.Fail().SetMsg("验证码检测调用失败").Send()
 		return
@@ -89,8 +90,8 @@ func (u *UserController) Login() {
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/login/init")
 	request.SetHeader("X-Requested-With","XMLHttpRequest")
 	isLogin, login := request.SetURL(beego.AppConfig.String("12306::URLGetUserLogin")).Post(loginData)
-	beego.Info("用户登录调用 -----> %t --> %s", isLogin,login)
-	if !isInit {
+	beego.Info("用户登录调用 ----->  ", isLogin,login)
+	if !isLogin {
 		u.Fail().SetMsg("用户登录调用失败").Send()
 		return
 	}
@@ -110,7 +111,7 @@ func (u *UserController) Login() {
 	uaMtkData.Set("appid", "otn")
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/passport?redirect=/otn/login/userLogin")
 	isUamtk, uamtk := request.SetURL(beego.AppConfig.String("12306::URLGetUAMTK")).Post(uaMtkData)
-	beego.Info("用户登录检测调用 -----> %t", isUamtk)
+	beego.Info("用户登录检测调用 ----->  ", isUamtk)
 	if !isUamtk {
 		u.Fail().SetMsg("用户登录检测调用失败").Send()
 		return
@@ -125,7 +126,7 @@ func (u *UserController) Login() {
 	uaAuthData.Set("tk", uaMtkRes.NewAppTK)
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/passport?redirect=/otn/login/userLogin")
 	isUaAuth, uaAuthPage := request.SetURL("https://kyfw.12306.cn/otn/uamauthclient").Post(uaAuthData)
-	beego.Info("获取登录信息调用 -----> %t", isUaAuth)
+	beego.Info("获取登录信息调用 ----->  ", isUaAuth)
 	if !isUaAuth {
 		u.Fail().SetMsg("获取登录信息调用失败").Send()
 		return
@@ -147,10 +148,10 @@ func (u *UserController) Login() {
 func (u *UserController) VerifyCode() {
 	//登录页面初始化
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/index/init")
-	isInit, dd := request.SetURL(beego.AppConfig.String("12306::URLGetLoginInit")).Get()
-	beego.Info("登录页面init -----> %t", isInit,dd)
+	isInit, _ := request.SetURL(beego.AppConfig.String("12306::URLGetLoginInit")).Get()
+	beego.Info("登录页面init ----->  ", isInit)
 	if !isInit {
-		u.Fail().SetMsg("登录页初始化失败").Send()
+		http.Error(u.Ctx.ResponseWriter, "Not Found", 404)
 		return
 	}
 	//检测用户是否登录
@@ -158,17 +159,17 @@ func (u *UserController) VerifyCode() {
 	data.Set("appid", "otn")
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/login/init")
 	isUamtk, _ := request.SetURL(beego.AppConfig.String("12306::URLGetUAMTK")).Post(data)
-	beego.Info("用户登录检测调用 -----> %t", isUamtk)
+	beego.Info("用户登录检测调用 ----->  ", isUamtk)
 	if !isInit {
-		u.Fail().SetMsg("用户登录检测调用失败").Send()
+		http.Error(u.Ctx.ResponseWriter, "Not Found", 404)
 		return
 	}
 	//获取验证码
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/login/init")
 	isGet, dataImg := request.SetURL(fmt.Sprintf(beego.AppConfig.String("12306::URLGetLoginCodeImg"), rand.Float64())).Download()
-	beego.Info("验证码下载 -----> %t", isGet)
+	beego.Info("验证码下载 ----->  ", isGet)
 	if !isGet {
-		u.Fail().SetMsg("获取验证码失败").Send()
+		http.Error(u.Ctx.ResponseWriter, "Not Found", 404)
 		return
 	}
 	u.Ctx.Output.ContentType("png")
