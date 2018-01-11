@@ -1,11 +1,12 @@
 package utils
 
 import (
-	"io/ioutil"
-	"net/http"
 	"crypto/tls"
-	"time"
+	"io/ioutil"
 	"net"
+	"net/http"
+	"time"
+
 	"github.com/astaxie/beego"
 	// "bytes"
 	"net/http/cookiejar"
@@ -69,12 +70,17 @@ func init() {
 		TLSHandshakeTimeout: 60 * time.Second,
 	}
 
-
 }
 
 //设置Url
 func (request *Request) SetURL(url string) *Request {
 	requestURL = url
+	return request
+}
+
+func (request *Request) SetCookie(cookies []*http.Cookie) *Request {
+	u, _ := url.Parse(requestURL)
+	client.Jar.SetCookies(u, cookies)
 	return request
 }
 
@@ -158,6 +164,7 @@ func (request *Request) Get() (bool, string) {
 	defer clientResponse.Body.Close()
 	//获取cookies
 	requestCookie = requestCookieJar.Cookies(clientRequest.URL)
+	beego.Debug(requestCookie)
 	//读取数据
 	body, errRead := ioutil.ReadAll(clientResponse.Body)
 	if clientResponse.StatusCode != 200 {
@@ -196,6 +203,7 @@ func (request *Request) Post(data *url.Values) (bool, string) {
 	defer clientResponse.Body.Close()
 	//获取cookies
 	requestCookie = requestCookieJar.Cookies(clientRequest.URL)
+	beego.Debug(requestCookie)
 	//读取数据
 	body, errRead := ioutil.ReadAll(clientResponse.Body)
 	if clientResponse.StatusCode != 200 {
@@ -232,6 +240,7 @@ func (request *Request) Download() (bool, []byte) {
 	defer clientResponse.Body.Close()
 	//获取cookies
 	requestCookie = requestCookieJar.Cookies(clientRequest.URL)
+	beego.Debug(requestCookie)
 	//读取数据
 	body, errRead := ioutil.ReadAll(clientResponse.Body)
 	if clientResponse.StatusCode != 200 {
