@@ -1,9 +1,9 @@
 package controllers
 
-import (
-	// "encoding/json"
-	// "github.com/astaxie/beego"
-)
+import "encoding/json"
+
+// "encoding/json"
+// "github.com/astaxie/beego"
 
 // PassengerController Operations about object
 type PassengerController struct {
@@ -17,6 +17,14 @@ type PassengerController struct {
 // @Failure 403 :uid is empty
 // @router / [get]
 func (p *PassengerController) Get() {
+	data, err := kyfwQuery.GetPassenger()
+	if err != nil {
+		p.Fail().SetMsg(err.Error()).Send()
+		return
+	}
+	var reData map[string]interface{}
+	json.Unmarshal([]byte(data), &reData)
+	p.Success().SetData(reData).Send()
 	//获取乘客列表
 	// request.SetHeader("Referer", "https://kyfw.12306.cn/otn/confirmPassenger/initDc")
 	// request.SetHeader("X-Requested-With","XMLHttpRequest")

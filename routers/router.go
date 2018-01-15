@@ -22,6 +22,7 @@ func init() {
 		//登录
 		beego.NSRouter("/auth/login", &controllers.UserController{}, "Post:Login"),
 		beego.NSRouter("/auth/verifyCode", &controllers.UserController{}, "Get:VerifyCode"),
+		beego.NSRouter("/auth/init", &controllers.UserController{}, "Get:InitLogin"),
 		//车次处理
 		beego.NSNamespace("/schedule",
 			beego.NSBefore(Auth),

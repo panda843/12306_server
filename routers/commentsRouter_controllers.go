@@ -31,6 +31,14 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
+	beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:ScheduleController"] = append(beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:ScheduleController"],
+		beego.ControllerComments{
+			Method: "InitQuery",
+			Router: `/init`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
 	beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:StationController"] = append(beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:StationController"],
 		beego.ControllerComments{
 			Method: "Get",

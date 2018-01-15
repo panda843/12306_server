@@ -8,23 +8,25 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"strings"
 	"time"
-	"net/http/cookiejar"
+
+	"github.com/astaxie/beego"
 	"golang.org/x/net/publicsuffix"
 )
 
 //Request
 type Request struct {
-	HttpClient http.Client
-	HttpRequest *http.Request
-	HttpResponse *http.Response
+	HttpClient           http.Client
+	HttpRequest          *http.Request
+	HttpResponse         *http.Response
 	DisableDefaultHeader bool
 }
 
 //初始化Request
-func (request *Request) InitRequest(){
+func (request *Request) InitRequest() {
 	//初始化CookieJar
 	request.HttpClient.Jar, _ = cookiejar.New(&cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
@@ -51,20 +53,24 @@ func (request *Request) InitRequest(){
 }
 
 //创建请求
-func (request *Request) CreateHttpRequest(requestUrl,method string,val interface{}) error {
+func (request *Request) CreateHttpRequest(requestUrl, method string, val interface{}) error {
 	var nReq *http.Request
 	var nErr error
-	switch data := val.(type){
+	switch data := val.(type) {
 	case string:
-		nReq, nErr = http.NewRequest(method, requestUrl,io.Reader(bytes.NewBuffer([]byte(data))))
+		beego.Debug("params:", val.(string))
+		nReq, nErr = http.NewRequest(method, requestUrl, io.Reader(bytes.NewBuffer([]byte(data))))
 	case []byte:
-		nReq, nErr = http.NewRequest(method, requestUrl,io.Reader(bytes.NewBuffer(data)))
+		beego.Debug("params:", string(val.([]byte)))
+		nReq, nErr = http.NewRequest(method, requestUrl, io.Reader(bytes.NewBuffer(data)))
 	case url.Values:
-		nReq, nErr = http.NewRequest(method, requestUrl,strings.NewReader(data.Encode()))
+		beego.Debug("params:", strings.NewReader(data.Encode()))
+		nReq, nErr = http.NewRequest(method, requestUrl, strings.NewReader(data.Encode()))
 	case *url.Values:
-		nReq, nErr = http.NewRequest(method, requestUrl,strings.NewReader(data.Encode()))
+		beego.Debug("params:", strings.NewReader(data.Encode()))
+		nReq, nErr = http.NewRequest(method, requestUrl, strings.NewReader(data.Encode()))
 	default:
-		nReq, nErr = http.NewRequest(method, requestUrl,nil)
+		nReq, nErr = http.NewRequest(method, requestUrl, nil)
 	}
 	if nErr != nil {
 		return errors.New("Request请求创建失败")
@@ -72,16 +78,27 @@ func (request *Request) CreateHttpRequest(requestUrl,method string,val interface
 	request.HttpRequest = nReq
 	return nil
 }
+
 //设置Header头
-func (request *Request) SetHeader(key,val string) error {
+func (request *Request) SetHeader(key, val string) error {
 	if request.HttpRequest != nil {
 		request.HttpRequest.Header.Set(key, val)
+		return nil
 	}
 	return errors.New("HttpRequest为空")
 }
 
+//设置Cookie
+func (request *Request) SetCookie(cookie []*http.Cookie) error {
+	if request.HttpClient.Jar != nil && request.HttpRequest != nil {
+		request.HttpClient.Jar.SetCookies(request.HttpRequest.URL, cookie)
+		return nil
+	}
+	return errors.New("HttpClient为空")
+}
+
 //设置默认请求头
-func SetRequestDefaultHeader(request *Request){
+func SetRequestDefaultHeader(request *Request) {
 	//设置默认Header
 	if !request.DisableDefaultHeader {
 		request.SetHeader("Accept", "*/*")
@@ -96,7 +113,7 @@ func SetRequestDefaultHeader(request *Request){
 }
 
 //读取返回数据
-func ReadHttpResponseData(request *Request) ([]byte,error) {
+func ReadHttpResponseData(request *Request) ([]byte, error) {
 	//关闭Response body
 	defer request.HttpResponse.Body.Close()
 	//返回读取数据
@@ -105,9 +122,15 @@ func ReadHttpResponseData(request *Request) ([]byte,error) {
 
 //发送Request请求
 func SendHttpRequest(request *Request) error {
+	for k, v := range request.HttpClient.Jar.Cookies(request.HttpRequest.URL) {
+		beego.Debug("Cookie:", k, v)
+	}
+	for k, v := range request.HttpRequest.Header {
+		beego.Debug("Header:", k, v)
+	}
 	//判断Post请求,设置Header头Content-Type
 	if strings.ToUpper(request.HttpRequest.Method) == "POST" {
-		request.SetHeader("Content-Type", "application/x-www-form-urlencoded")
+		request.SetHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-")
 	}
 	nRsp, errSend := request.HttpClient.Do(request.HttpRequest)
 	if errSend != nil {
@@ -116,18 +139,19 @@ func SendHttpRequest(request *Request) error {
 	request.HttpResponse = nRsp
 	return nil
 }
+
 //发送请求
-func (request *Request) Send() ([]byte,error) {
-	if request.HttpRequest != nil{
+func (request *Request) Send() ([]byte, error) {
+	if request.HttpRequest != nil {
 		//设置header
 		SetRequestDefaultHeader(request)
 		//发送请求
 		err := SendHttpRequest(request)
-		if err != nil{
-			return nil,err
+		if err != nil {
+			return nil, err
 		}
 		//读取数据
 		return ReadHttpResponseData(request)
 	}
-	return nil,errors.New("HttpRequest为空")
+	return nil, errors.New("HttpRequest为空")
 }

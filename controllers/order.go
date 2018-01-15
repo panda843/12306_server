@@ -1,12 +1,18 @@
 package controllers
 
 import (
+	"net/url"
+
+	"github.com/chuanshuo843/12306_server/utils/kyfw"
 	// "net/http"
 	// "net/url"
 	// "strings"
 	// "fmt"
-
 	// "github.com/astaxie/beego"
+)
+
+var (
+	kyfwOrder kyfw.Order
 )
 
 // PassengerController Operations about object
@@ -21,6 +27,18 @@ type OrderController struct {
 // @Failure 403 :uid is empty
 // @router / [post]
 func (o *OrderController) Post() {
+
+	secretStr := o.GetString("secret_key")
+	trainDate := o.GetString("train_date")
+	startStation := o.GetString("start_station")
+	endStation := o.GetString("end_station")
+	pasSec, _ := url.Parse(secretStr)
+	err := kyfwOrder.PlaceAnOrder(pasSec.String(), startStation, endStation, trainDate)
+	if err != nil {
+		o.Fail().SetMsg(err.Error()).Send()
+		return
+	}
+	o.Fail().SetMsg("DDDTTTTSSSSS").Send()
 	// //获取提交信息
 	// secretStr := o.GetString("secret_key")
 	// trainDate := o.GetString("train_date")

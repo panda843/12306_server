@@ -26,16 +26,17 @@ type JwtPayload struct {
 }
 
 type JwtSecret struct {
-	Key  string `json:"key"`  //秘钥
+	Key string `json:"key"` //秘钥
 }
 
-type Jwt struct{
-	Header JwtHeader
+type Jwt struct {
+	Header  JwtHeader
 	Payload JwtPayload
-	Secret JwtSecret
+	Secret  JwtSecret
 }
+
 //JWT 初始化
-func (jwt *Jwt) InitJwt(){
+func (jwt *Jwt) InitJwt() {
 	//设置Header
 	jwt.Header.JwtAlg = "HS256"
 	jwt.Header.JwtHead = "JWT"
@@ -52,6 +53,7 @@ func (header *JwtHeader) Encode() string {
 	json_data, _ := json.Marshal(header)
 	return base64.StdEncoding.EncodeToString(json_data)
 }
+
 //解码JWT的Header头
 func (header *JwtHeader) Decode(data string) error {
 	headerStr, err := base64.StdEncoding.DecodeString(data)
@@ -64,13 +66,14 @@ func (header *JwtHeader) Decode(data string) error {
 	}
 	return nil
 }
+
 //解码payload部分
 func (payload *JwtPayload) Decode(data string) error {
 	payloadStr, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
 		return err
 	}
-	errJson := json.Unmarshal(payloadStr,payload)
+	errJson := json.Unmarshal(payloadStr, payload)
 	if errJson != nil {
 		return errJson
 	}
@@ -82,8 +85,9 @@ func (payload *JwtPayload) Encode() string {
 	json_data, _ := json.Marshal(payload)
 	return base64.StdEncoding.EncodeToString(json_data)
 }
+
 //JWT的secret部分加密
-func (secret *JwtSecret) Signature(header ,payload string) string {
+func (secret *JwtSecret) Signature(header, payload string) string {
 	encode_jwt := header + "." + payload
 	h := hmac.New(sha256.New, []byte(secret.Key))
 	h.Write([]byte(encode_jwt))
@@ -94,8 +98,9 @@ func (secret *JwtSecret) Signature(header ,payload string) string {
 func (jwt *Jwt) Encode() string {
 	headerStr := jwt.Header.Encode()
 	payloadStr := jwt.Payload.Encode()
-	return headerStr + "." +  payloadStr + "." + jwt.Secret.Signature(headerStr,payloadStr)
+	return headerStr + "." + payloadStr + "." + jwt.Secret.Signature(headerStr, payloadStr)
 }
+
 //JWT解码
 func (jwt *Jwt) Decode(token string) error {
 	data := strings.Split(token, ".")
@@ -123,7 +128,7 @@ func (jwt *Jwt) Checkd(token string) bool {
 		return false
 	}
 	//检测Hash是否一致
-	secret := jwt.Secret.Signature(string(data[0])+"."+string(data[1]), jwt.Secret.Key)
+	secret := jwt.Secret.Signature(string(data[0]), string(data[1]))
 	if secret != string(data[2]) {
 		return false
 	}
