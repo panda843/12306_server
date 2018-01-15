@@ -1,62 +1,40 @@
 package utils
 
 import (
+	"bytes"
 	"crypto/tls"
+	"errors"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
-	"time"
-
-	"github.com/astaxie/beego"
-	// "bytes"
-	"net/http/cookiejar"
 	"net/url"
 	"strings"
-
-	_ "github.com/astaxie/beego"
+	"time"
+	"net/http/cookiejar"
 	"golang.org/x/net/publicsuffix"
 )
 
-var requestCookie []*http.Cookie
-var requestCookieJar *cookiejar.Jar
-
-var client http.Client
-
-//url
-var requestURL string
-
-var isDisableHeader bool
-
-//request header
-var requestHeader map[string]string
-
-//response header
-var responseHeader map[string]string
-
 //Request
 type Request struct {
+	HttpClient http.Client
+	HttpRequest *http.Request
+	HttpResponse *http.Response
+	DisableDefaultHeader bool
 }
 
-func init() {
-	isDisableHeader = false
-
-	requestCookie = nil
-	options := cookiejar.Options{
+//初始化Request
+func (request *Request) InitRequest(){
+	//初始化CookieJar
+	request.HttpClient.Jar, _ = cookiejar.New(&cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
-	}
-	//options := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
-
-	requestCookieJar, _ = cookiejar.New(&options)
-
-	requestHeader = make(map[string]string)
-
-	responseHeader = make(map[string]string)
-
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	})
+	//设置CheckRedirect
+	request.HttpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
-	client.Jar = requestCookieJar
-	client.Transport = &http.Transport{
+	//设置Transport
+	request.HttpClient.Transport = &http.Transport{
 		// 12306 https CA认证
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		// TLSClientConfig: &tls.Config{RootCAs: pool},
@@ -72,182 +50,84 @@ func init() {
 
 }
 
-//设置Url
-func (request *Request) SetURL(url string) *Request {
-	requestURL = url
-	return request
-}
-
-func (request *Request) SetCookie(cookies []*http.Cookie) *Request {
-	u, _ := url.Parse(requestURL)
-	client.Jar.SetCookies(u, cookies)
-	return request
-}
-
-//设置启用停用header
-func (request *Request) IsDisableHeader(enable bool) *Request {
-	isDisableHeader = enable
-	return request
-}
-
-//设置默认header
-func (request *Request) _SetDefaultHeader(clientRequest *http.Request) *Request {
-	//设置header头
-	clientRequest.Header.Set("Accept", "*/*")
-	clientRequest.Header.Set("Accept-Encoding", "deflate, br")
-	clientRequest.Header.Set("Accept-Language", "zh-CN,zh;q=0.9")
-	clientRequest.Header.Set("Cache-Control", "no-cache")
-	clientRequest.Header.Set("Connection", "keep-alive")
-	clientRequest.Header.Set("Host", "kyfw.12306.cn")
-	clientRequest.Header.Set("Origin", "https://kyfw.12306.cn")
-	clientRequest.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36")
-	return request
-}
-
-//设置用户自定义header
-func (request *Request) _SetDefineHeader(clientRequest *http.Request) *Request {
-	//设置header头
-	for k, v := range requestHeader {
-		clientRequest.Header.Set(k, v)
+//创建请求
+func (request *Request) CreateHttpRequest(requestUrl,method string,val interface{}) error {
+	var nReq *http.Request
+	var nErr error
+	switch data := val.(type){
+	case string:
+		nReq, nErr = http.NewRequest(method, requestUrl,io.Reader(bytes.NewBuffer([]byte(data))))
+	case []byte:
+		nReq, nErr = http.NewRequest(method, requestUrl,io.Reader(bytes.NewBuffer(data)))
+	case url.Values:
+		nReq, nErr = http.NewRequest(method, requestUrl,strings.NewReader(data.Encode()))
+	case *url.Values:
+		nReq, nErr = http.NewRequest(method, requestUrl,strings.NewReader(data.Encode()))
+	default:
+		nReq, nErr = http.NewRequest(method, requestUrl,nil)
 	}
-	return request
+	if nErr != nil {
+		return errors.New("Request请求创建失败")
+	}
+	request.HttpRequest = nReq
+	return nil
+}
+//设置Header头
+func (request *Request) SetHeader(key,val string) error {
+	if request.HttpRequest != nil {
+		request.HttpRequest.Header.Set(key, val)
+	}
+	return errors.New("HttpRequest为空")
 }
 
-func (request *Request) _ResetRequestDefaultData() {
-	// 恢复默认使用header
-	isDisableHeader = true
-	// 	清空cookies
-	requestCookie = nil
-	// 清空 requestHeader map
-	for k, _ := range requestHeader {
-		delete(requestHeader, k)
-	}
-	// 清空 responseHeader map
-	for k, _ := range responseHeader {
-		delete(responseHeader, k)
+//设置默认请求头
+func SetRequestDefaultHeader(request *Request){
+	//设置默认Header
+	if !request.DisableDefaultHeader {
+		request.SetHeader("Accept", "*/*")
+		request.SetHeader("Accept-Encoding", "deflate, br")
+		request.SetHeader("Accept-Language", "zh-CN,zh;q=0.9")
+		request.SetHeader("Cache-Control", "no-cache")
+		request.SetHeader("Connection", "keep-alive")
+		request.SetHeader("Host", "kyfw.12306.cn")
+		request.SetHeader("Origin", "https://kyfw.12306.cn")
+		request.SetHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36")
 	}
 }
 
-//设置header
-func (request *Request) SetHeader(key, val string) *Request {
-	requestHeader[key] = val
-	return request
-}
-
-//获取header
-func (request *Request) GetHeader(key string) string {
-	return requestHeader[key]
-}
-
-//发送Get请求
-func (request *Request) Get() (bool, string) {
-	//新建请求
-	clientRequest, errNew := http.NewRequest("GET", requestURL, nil)
-	//设置header
-	if isDisableHeader {
-		//设置默认Header
-		request._SetDefaultHeader(clientRequest)
-		//设置用户自定义Header
-		request._SetDefineHeader(clientRequest)
-	}
-	if errNew != nil {
-		return false, "create get request fail"
-	}
-	//发送请求
-	clientResponse, errSend := client.Do(clientRequest)
-	if errSend != nil {
-		return false, "send get request fail"
-	}
-	//重置数据
-	request._ResetRequestDefaultData()
+//读取返回数据
+func ReadHttpResponseData(request *Request) ([]byte,error) {
 	//关闭Response body
-	defer clientResponse.Body.Close()
-	//获取cookies
-	requestCookie = requestCookieJar.Cookies(clientRequest.URL)
-	beego.Debug(requestCookie)
-	//读取数据
-	body, errRead := ioutil.ReadAll(clientResponse.Body)
-	if clientResponse.StatusCode != 200 {
-		return false, string(body)
-	}
-	if errRead != nil {
-		return false, "read get request body fail"
-	}
-	return true, string(body)
+	defer request.HttpResponse.Body.Close()
+	//返回读取数据
+	return ioutil.ReadAll(request.HttpResponse.Body)
 }
 
-//发送Post请求
-func (request *Request) Post(data *url.Values) (bool, string) {
-	beego.Debug(strings.NewReader(data.Encode()))
-	//新建请求 strings.NewReader(s)
-	clientRequest, errNew := http.NewRequest("POST", requestURL, strings.NewReader(data.Encode()))
-	clientRequest.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	//设置header
-	if isDisableHeader {
-		//设置默认Header
-		request._SetDefaultHeader(clientRequest)
-		//设置用户自定义Header
-		request._SetDefineHeader(clientRequest)
+//发送Request请求
+func SendHttpRequest(request *Request) error {
+	//判断Post请求,设置Header头Content-Type
+	if strings.ToUpper(request.HttpRequest.Method) == "POST" {
+		request.SetHeader("Content-Type", "application/x-www-form-urlencoded")
 	}
-	if errNew != nil {
-		return false, "create get request fail"
-	}
-	//发送请求
-	clientResponse, errSend := client.Do(clientRequest)
+	nRsp, errSend := request.HttpClient.Do(request.HttpRequest)
 	if errSend != nil {
-		return false, "send get request fail"
+		return errors.New("发送Request请求失败")
 	}
-	//重置数据
-	request._ResetRequestDefaultData()
-	//关闭Response body
-	defer clientResponse.Body.Close()
-	//获取cookies
-	requestCookie = requestCookieJar.Cookies(clientRequest.URL)
-	beego.Debug(requestCookie)
-	//读取数据
-	body, errRead := ioutil.ReadAll(clientResponse.Body)
-	if clientResponse.StatusCode != 200 {
-		return false, string(body)
-	}
-	if errRead != nil {
-		return false, "read get request body fail"
-	}
-	return true, string(body)
+	request.HttpResponse = nRsp
+	return nil
 }
-
-//下载文件
-func (request *Request) Download() (bool, []byte) {
-	//新建请求
-	clientRequest, errNew := http.NewRequest("GET", requestURL, nil)
-	//设置header
-	if isDisableHeader {
-		//设置默认Header
-		request._SetDefaultHeader(clientRequest)
-		//设置用户自定义Header
-		request._SetDefineHeader(clientRequest)
+//发送请求
+func (request *Request) Send() ([]byte,error) {
+	if request.HttpRequest != nil{
+		//设置header
+		SetRequestDefaultHeader(request)
+		//发送请求
+		err := SendHttpRequest(request)
+		if err != nil{
+			return nil,err
+		}
+		//读取数据
+		return ReadHttpResponseData(request)
 	}
-	if errNew != nil {
-		return false, []byte("create get request fail")
-	}
-	//发送请求
-	clientResponse, errSend := client.Do(clientRequest)
-	if errSend != nil {
-		return false, []byte("send get request fail")
-	}
-	//重置数据
-	request._ResetRequestDefaultData()
-	//关闭Response body
-	defer clientResponse.Body.Close()
-	//获取cookies
-	requestCookie = requestCookieJar.Cookies(clientRequest.URL)
-	beego.Debug(requestCookie)
-	//读取数据
-	body, errRead := ioutil.ReadAll(clientResponse.Body)
-	if clientResponse.StatusCode != 200 {
-		return false, body
-	}
-	if errRead != nil {
-		return false, []byte("read get request body fail")
-	}
-	return true, body
+	return nil,errors.New("HttpRequest为空")
 }

@@ -69,7 +69,7 @@ func Auth(ctx *context.Context) {
 		}
 		token := kv[1]
 		jwt := &utils.Jwt{}
-		jwt.SetSecretKey(beego.AppConfig.String("JwtKey"))
+		jwt.InitJwt()
 		if !jwt.Checkd(token) {
 			AllowCross(ctx)
 			return
