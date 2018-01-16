@@ -25,7 +25,7 @@ type Order struct {
 }
 
 //下单
-func (order *Order) PlaceAnOrder(secret, start, end, date string) error {
+func (order *Order) PlaceAnOrder(secret, start, end, date,ticketStr,passengerStr string) error {
 	//提交订单
 	errSub := order.SubmitOrder(secret, start, end, date)
 	if errSub != nil {
@@ -36,7 +36,8 @@ func (order *Order) PlaceAnOrder(secret, start, end, date string) error {
 	if errInit != nil {
 		return errInit
 	}
-	_, errCheckd := order.CheckConfirmOrder("", "")
+	//检测订单
+	_, errCheckd := order.CheckConfirmOrder(ticketStr, passengerStr)
 	if errCheckd != nil {
 		return errCheckd
 	}
@@ -83,7 +84,6 @@ func (order *Order) InitConfirmOrder() error {
 		return errSend
 	}
 	splData := strings.Split(string(data), "\n")
-	beego.Debug(string(splData[11]))
 	if len(splData) > 64 {
 		order.Token = string([]byte(splData[11])[32:64])
 		return nil
@@ -94,24 +94,17 @@ func (order *Order) InitConfirmOrder() error {
 
 //检测订单
 func (order *Order) CheckConfirmOrder(ticketStr, passengerStr string) ([]byte, error) {
-	paramsMap := &url.Values{
-		"cancel_flag":         {"2"},
-		"bed_level_order_num": {"000000000000000000000000000000"},
-		"passengerTicketStr":  {ticketStr},
-		"oldPassengerStr":     {passengerStr},
-		"tour_flag":           {"dc"},
-		"randCode":            {""},
-		"whatsSelect":         {"1"},
-		"_json_att":           {""},
-		"REPEAT_SUBMIT_TOKEN": {order.Token},
-	}
-	err := request.CreateHttpRequest(OrderCheckedURL, "POST", paramsMap)
+	params := fmt.Sprintf("cancel_flag=2&bed_level_order_num=000000000000000000000000000000&passengerTicketStr=%s&oldPassengerStr=%s"+
+		"&tour_flag=dc&randCode=&_json_att=&REPEAT_SUBMIT_TOKEN=%s",ticketStr, passengerStr, order.Token)
+	//params := fmt.Sprintf("cancel_flag=2&bed_level_order_num=000000000000000000000000000000&passengerTicketStr=%s&oldPassengerStr=%s&tour_flag=dc&randCode=&whatsSelect=1&_json_att=&REPEAT_SUBMIT_TOKEN=%s",ticketStr,passengerStr,order.Token)
+	err := request.CreateHttpRequest(OrderCheckedURL, "POST", params)
 	if err != nil {
 		return nil, err
 	}
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/confirmPassenger/initDc")
 	request.SetHeader("X-Requested-With", "XMLHttpRequest")
 	data, errSend := request.Send()
+	beego.Debug(string(data))
 	if errSend != nil {
 		return nil, errSend
 	}
@@ -121,7 +114,8 @@ func (order *Order) CheckConfirmOrder(ticketStr, passengerStr string) ([]byte, e
 		return nil, errJson
 	}
 	if checkdRes["status"].(bool) != true {
-		return nil, errors.New(string(data))
+		msg := checkdRes["messages"].([]interface{})
+		return nil, errors.New(msg[0].(string))
 	}
 	return data, nil
 }

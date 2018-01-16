@@ -15,3 +15,7 @@ type Base struct {
 func init(){
 	request.InitRequest()
 }
+
+// func (base *Base) InitBase(){
+// 	request.InitRequest()
+// }

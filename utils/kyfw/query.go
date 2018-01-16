@@ -129,3 +129,7 @@ func (query *Query) GetPassenger() ([]byte, error) {
 	}
 	return data, nil
 }
+
+func (query *Query) GetSeatPrice(trainNo,startNo,endNo,seatType,date string){
+	//https://kyfw.12306.cn/otn/leftTicket/queryTicketPrice?train_no=5l0000G13061&from_station_no=01&to_station_no=12&seat_types=O9M&train_date=2017-02-05`]
+}

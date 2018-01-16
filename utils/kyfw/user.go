@@ -9,6 +9,10 @@ import (
 	"errors"
 )
 
+var (
+	loginCount = 0;
+)
+
 const (
 	//用户登录Init
 	UserLoginInit = "https://kyfw.12306.cn/otn/login/init"
@@ -141,8 +145,17 @@ func (user *User) Login12306(username,password string) error{
 	if errSend != nil {
 		return errSend
 	}
+	loginCount = 0
 	if len(data) == 0 {
-		return errors.New("登录返回数据为空")
+		if loginCount  < 10 {
+			loginErr := user.Login12306(username,password)
+			if loginErr != nil {
+				user.Login12306(username,password)
+			}
+			loginCount++
+		}else{
+			return errors.New("登录返回数据为空")
+		}
 	}
 	var loginRes map[string]interface{}
 	errJson := json.Unmarshal(data,&loginRes)

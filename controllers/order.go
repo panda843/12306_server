@@ -32,8 +32,10 @@ func (o *OrderController) Post() {
 	trainDate := o.GetString("train_date")
 	startStation := o.GetString("start_station")
 	endStation := o.GetString("end_station")
+	ticketStr := o.GetString("ticket_str")
+	passengerStr := o.GetString("passenger_str")
 	pasSec, _ := url.Parse(secretStr)
-	err := kyfwOrder.PlaceAnOrder(pasSec.String(), startStation, endStation, trainDate)
+	err := kyfwOrder.PlaceAnOrder(pasSec.String(), startStation, endStation, trainDate,ticketStr,passengerStr)
 	if err != nil {
 		o.Fail().SetMsg(err.Error()).Send()
 		return
