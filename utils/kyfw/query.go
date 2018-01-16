@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+var (
+	QueryScheduleCount = 0
+)
+
 const (
 	//获取站台信息
 	QueryGetStation = "https://kyfw.12306.cn/otn/resources/js/framework/station_name.js?station_version=1.9042"
@@ -80,6 +84,30 @@ func (query *Query) AddQueryScheduleLog(startStation, endStation, startCode, end
 	return nil
 }
 
+func (query *Query) QueryScheduleInfo(date, startCode, endCode string) (string, error) {
+	//查询车次信息
+	errQ := request.CreateHttpRequest(fmt.Sprintf(QuerySchedule, query.ScheduleQueryURL, date, startCode, endCode), "GET", nil)
+	if errQ != nil {
+		return "", errQ
+	}
+	request.SetHeader("X-Requested-With", "XMLHttpRequest")
+	data, errQuery := request.Send()
+	if errQuery != nil {
+		return "", errQuery
+	}
+	if len(data) == 0 {
+		if QueryScheduleCount > 5 {
+			loginCount = 0
+			return "", errors.New("车次查询失败,返回数据为空")
+		}
+		QueryScheduleCount++
+		query.QueryScheduleInfo(date, startCode, endCode)
+	} else {
+		return string(data), nil
+	}
+	return string(data), nil
+}
+
 //查询车次信息
 func (query *Query) GetSchedule(startStation, endStation, startCode, endCode, date string) (string, error) {
 	//检测查询URL
@@ -95,19 +123,7 @@ func (query *Query) GetSchedule(startStation, endStation, startCode, endCode, da
 		return "", errLog
 	}
 	//查询车次信息
-	errQ := request.CreateHttpRequest(fmt.Sprintf(QuerySchedule, query.ScheduleQueryURL, date, startCode, endCode), "GET", nil)
-	if errQ != nil {
-		return "", errQ
-	}
-	request.SetHeader("X-Requested-With", "XMLHttpRequest")
-	data, errQuery := request.Send()
-	if len(data) == 0 {
-		return "", errors.New("车次查询失败,返回数据为空")
-	}
-	if errQuery != nil {
-		return "", errQuery
-	}
-	return string(data), nil
+	return query.QueryScheduleInfo(date, startCode, endCode)
 }
 
 //查询乘客信息
@@ -130,6 +146,6 @@ func (query *Query) GetPassenger() ([]byte, error) {
 	return data, nil
 }
 
-func (query *Query) GetSeatPrice(trainNo,startNo,endNo,seatType,date string){
+func (query *Query) GetSeatPrice(trainNo, startNo, endNo, seatType, date string) {
 	//https://kyfw.12306.cn/otn/leftTicket/queryTicketPrice?train_no=5l0000G13061&from_station_no=01&to_station_no=12&seat_types=O9M&train_date=2017-02-05`]
 }

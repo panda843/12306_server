@@ -1,16 +1,15 @@
 package kyfw
 
 import (
-	"github.com/astaxie/beego"
-	"fmt"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"math/rand"
 	"net/url"
-	"errors"
 )
 
 var (
-	loginCount = 0;
+	loginCount = 0
 )
 
 const (
@@ -30,43 +29,45 @@ const (
 
 type User struct {
 	Base
-	IsLogin bool
+	IsLogin  bool
 	UserName string
-	Token string
+	Token    string
 }
 
 //登录页面初始化
-func (user *User) InitLogin() ([]byte,error){
-	err := request.CreateHttpRequest(UserLoginInit,"GET",nil)
+func (user *User) InitLogin() ([]byte, error) {
+	err := request.CreateHttpRequest(UserLoginInit, "GET", nil)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/index/init")
 	return request.Send()
 }
+
 //获取验证码
-func (user *User) GetVerifyImages() ([]byte,error){
-	err := request.CreateHttpRequest(fmt.Sprintf(UserGetVerifyImg,rand.Float64()),"GET",nil)
+func (user *User) GetVerifyImages() ([]byte, error) {
+	err := request.CreateHttpRequest(fmt.Sprintf(UserGetVerifyImg, rand.Float64()), "GET", nil)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/login/init")
 	return request.Send()
 }
+
 //获取12306登录token
 func (user *User) Get12306Token(appToken string) error {
-	err := request.CreateHttpRequest(UserGetToken,"POST",&url.Values{"tk":{appToken}})
+	err := request.CreateHttpRequest(UserGetToken, "POST", &url.Values{"tk": {appToken}})
 	if err != nil {
 		return err
 	}
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/passport?redirect=/otn/login/userLogin")
-	data,errSend := request.Send()
+	data, errSend := request.Send()
 	if errSend != nil {
 		return errSend
 	}
 	//解析返回数据
 	var tokenRes map[string]interface{}
-	errJson := json.Unmarshal(data,&tokenRes)
+	errJson := json.Unmarshal(data, &tokenRes)
 	if errJson != nil {
 		return errJson
 	}
@@ -82,47 +83,48 @@ func (user *User) Get12306Token(appToken string) error {
 }
 
 //检测用户是否登录
-func (user *User) CheckIsLogin() (string,error) {
-	err := request.CreateHttpRequest(UserAuthUAMTK,"POST",&url.Values{"appid":{"otn"}})
+func (user *User) CheckIsLogin() (string, error) {
+	err := request.CreateHttpRequest(UserAuthUAMTK, "POST", &url.Values{"appid": {"otn"}})
 	if err != nil {
-		return "",err
+		return "", err
 	}
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/login/init")
-	data,sendErr := request.Send()
+	data, sendErr := request.Send()
 	if sendErr != nil {
-		return "",sendErr
+		return "", sendErr
 	}
 	if len(data) == 0 {
-		return "",errors.New("检测登录返回数据为空")
+		return "", errors.New("检测登录返回数据为空")
 	}
 	//解析返回数据
 	var checkRes map[string]interface{}
-	errJosn := json.Unmarshal(data,&checkRes)
+	errJosn := json.Unmarshal(data, &checkRes)
 	if errJosn != nil {
-		return "",errJosn
+		return "", errJosn
 	}
 	// {"result_message":"验证通过","result_code":0,"apptk":null,"newapptk":"P5e8H_FPPq-Q6kfa9uUsKC0PUdOyqGtE6OSTPKvol9Qhuc1c0"}
 	if checkRes["result_code"].(float64) != 0 {
 		user.IsLogin = false
-		return "",errors.New(checkRes["result_message"].(string))
+		return "", errors.New(checkRes["result_message"].(string))
 	}
 	user.IsLogin = true
-	return checkRes["newapptk"].(string),nil
+	return checkRes["newapptk"].(string), nil
 }
+
 //用户登录
-func (user *User) Login(username,password,verify string) error {
+func (user *User) Login(username, password, verify string) error {
 	//检测验证码
 	errVer := user.CheckVerifyCode(verify)
 	if errVer != nil {
 		return errVer
 	}
 	//登录12306
-	errLogin := user.Login12306(username,password)
+	errLogin := user.Login12306(username, password)
 	if errLogin != nil {
 		return errLogin
 	}
 	//检测用户是否登录
-	appTk,errCheck := user.CheckIsLogin()
+	appTk, errCheck := user.CheckIsLogin()
 	if errCheck != nil {
 		return errCheck
 	}
@@ -133,56 +135,56 @@ func (user *User) Login(username,password,verify string) error {
 	}
 	return nil
 }
+
 //登录12306
-func (user *User) Login12306(username,password string) error{
-	err := request.CreateHttpRequest(UserLogin12306,"POST",&url.Values{"username":{username},"password":{password},"appid":{"otn"}})
+func (user *User) Login12306(username, password string) error {
+	err := request.CreateHttpRequest(UserLogin12306, "POST", &url.Values{"username": {username}, "password": {password}, "appid": {"otn"}})
 	if err != nil {
 		return err
 	}
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/login/init")
-	request.SetHeader("X-Requested-With","XMLHttpRequest")
-	data,errSend := request.Send()
+	request.SetHeader("X-Requested-With", "XMLHttpRequest")
+	data, errSend := request.Send()
 	if errSend != nil {
 		return errSend
 	}
-	loginCount = 0
-	if len(data) == 0 {
-		if loginCount  < 10 {
-			loginErr := user.Login12306(username,password)
-			if loginErr != nil {
-				user.Login12306(username,password)
-			}
-			loginCount++
-		}else{
+	if len(data) != 0 {
+		var loginRes map[string]interface{}
+		errJson := json.Unmarshal(data, &loginRes)
+		if errJson != nil {
+			return errJson
+		}
+		//{"result_message":"登录成功","result_code":0,"uamtk":"tnRPMlCjrDGm3k5IbzlRKQrbmnKToZC_8WN4ePn32Mkhuc1c0"}
+		if loginRes["result_code"].(float64) != 0 {
+			return errors.New(loginRes["result_message"].(string))
+		}
+		return nil
+	} else {
+		//数据为空时递归十次获取数据
+		if loginCount > 10 {
+			loginCount = 0
 			return errors.New("登录返回数据为空")
 		}
-	}
-	var loginRes map[string]interface{}
-	errJson := json.Unmarshal(data,&loginRes)
-	if errJson != nil {
-		return errJson
-	}
-	beego.Debug(string(data))
-	//{"result_message":"登录成功","result_code":0,"uamtk":"tnRPMlCjrDGm3k5IbzlRKQrbmnKToZC_8WN4ePn32Mkhuc1c0"}
-	if loginRes["result_code"].(float64) != 0 {
-		return errors.New(loginRes["result_message"].(string))
+		user.Login12306(username, password)
+		loginCount++
 	}
 	return nil
 }
+
 //检测验证码
 func (user *User) CheckVerifyCode(verifyCode string) error {
-	err := request.CreateHttpRequest(UserCheckVerify,"POST",&url.Values{"answer":{verifyCode},"login_site":{"E"},"rand":{"sjrand"}})
+	err := request.CreateHttpRequest(UserCheckVerify, "POST", &url.Values{"answer": {verifyCode}, "login_site": {"E"}, "rand": {"sjrand"}})
 	if err != nil {
 		return err
 	}
 	request.SetHeader("Referer", "https://kyfw.12306.cn/otn/login/init")
-	request.SetHeader("X-Requested-With","XMLHttpRequest")
-	data,errSend := request.Send()
+	request.SetHeader("X-Requested-With", "XMLHttpRequest")
+	data, errSend := request.Send()
 	if errSend != nil {
 		return errSend
 	}
 	var verRes map[string]interface{}
-	errJson := json.Unmarshal(data,&verRes)
+	errJson := json.Unmarshal(data, &verRes)
 	if errJson != nil {
 		return errJson
 	}

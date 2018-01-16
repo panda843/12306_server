@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/astaxie/beego"
@@ -21,11 +22,13 @@ var (
 
 type Order struct {
 	Base
-	Token string
+	SubmitToken      string
+	keyCheckIsChange string
+	leftTicketStr    string
 }
 
 //下单
-func (order *Order) PlaceAnOrder(secret, start, end, date,ticketStr,passengerStr string) error {
+func (order *Order) PlaceAnOrder(secret, start, end, date, ticketStr, passengerStr string) error {
 	//提交订单
 	errSub := order.SubmitOrder(secret, start, end, date)
 	if errSub != nil {
@@ -83,19 +86,25 @@ func (order *Order) InitConfirmOrder() error {
 	if errSend != nil {
 		return errSend
 	}
+	var keyCheckRegexp = regexp.MustCompile(`'key_check_isChange':'[\S]+','left`)
+	beego.Debug("key_check_isChange:", keyCheckRegexp.FindAllStringSubmatch(string(data), -1))
+	var ticketRegexp = regexp.MustCompile(`'leftTicketStr':'[\S]+','limit`)
+	beego.Debug("leftTicketStr:", ticketRegexp.FindAllStringSubmatch(string(data), -1))
+	//获取submitToken
 	splData := strings.Split(string(data), "\n")
 	if len(splData) > 64 {
-		order.Token = string([]byte(splData[11])[32:64])
+		order.SubmitToken = string([]byte(splData[11])[32:64])
 		return nil
 	} else {
 		return errors.New("获取订单token出错")
 	}
+	return nil
 }
 
 //检测订单
 func (order *Order) CheckConfirmOrder(ticketStr, passengerStr string) ([]byte, error) {
 	params := fmt.Sprintf("cancel_flag=2&bed_level_order_num=000000000000000000000000000000&passengerTicketStr=%s&oldPassengerStr=%s"+
-		"&tour_flag=dc&randCode=&_json_att=&REPEAT_SUBMIT_TOKEN=%s",ticketStr, passengerStr, order.Token)
+		"&tour_flag=dc&randCode=&_json_att=&REPEAT_SUBMIT_TOKEN=%s", ticketStr, passengerStr, order.SubmitToken)
 	//params := fmt.Sprintf("cancel_flag=2&bed_level_order_num=000000000000000000000000000000&passengerTicketStr=%s&oldPassengerStr=%s&tour_flag=dc&randCode=&whatsSelect=1&_json_att=&REPEAT_SUBMIT_TOKEN=%s",ticketStr,passengerStr,order.Token)
 	err := request.CreateHttpRequest(OrderCheckedURL, "POST", params)
 	if err != nil {
