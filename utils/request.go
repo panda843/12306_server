@@ -19,10 +19,20 @@ import (
 
 //Request
 type Request struct {
-	HttpClient           http.Client
+	HttpClient           *http.Client
 	HttpRequest          *http.Request
 	HttpResponse         *http.Response
 	DisableDefaultHeader bool
+	InitBool             bool
+}
+
+// NewRequest .
+func NewRequest() *Request {
+	return &Request{
+		HttpClient:   &http.Client{},
+		HttpRequest:  &http.Request{},
+		HttpResponse: &http.Response{},
+	}
 }
 
 //初始化Request
@@ -49,7 +59,7 @@ func (request *Request) InitRequest() {
 		IdleConnTimeout:     90 * time.Second,
 		TLSHandshakeTimeout: 60 * time.Second,
 	}
-
+	request.InitBool = true
 }
 
 //创建请求
@@ -128,6 +138,7 @@ func SendHttpRequest(request *Request) error {
 	for k, v := range request.HttpRequest.Header {
 		beego.Debug("Header:", k, v)
 	}
+	beego.Debug("URL:", request.HttpRequest.URL)
 	//判断Post请求,设置Header头Content-Type
 	if strings.ToUpper(request.HttpRequest.Method) == "POST" {
 		request.SetHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-")

@@ -15,14 +15,30 @@ import (
 	"github.com/astaxie/beego/context"
 	"github.com/chuanshuo843/12306_server/controllers"
 	"github.com/chuanshuo843/12306_server/utils"
+	"github.com/chuanshuo843/12306_server/utils/kyfw"
 )
 
 func init() {
 	ns := beego.NewNamespace("/v1",
+		beego.NSCond(
+			func(ctx *context.Context) bool {
+				authString := ctx.Input.Header("Authorization")
+				if authString != "" {
+					kv := strings.Split(authString, " ")
+					if len(kv) == 2 && kv[0] == "Bearer" {
+						token := kv[1]
+						if token != "" {
+							req := kyfw.Load(token)
+							kyfw.SetRequest(req)
+						}
+					}
+				}
+				return true
+			}),
 		//登录
 		beego.NSRouter("/auth/login", &controllers.UserController{}, "Post:Login"),
 		beego.NSRouter("/auth/verifyCode", &controllers.UserController{}, "Get:VerifyCode"),
-		beego.NSRouter("/auth/init", &controllers.UserController{}, "Get:InitLogin"),
+		// beego.NSRouter("/auth/init", &controllers.UserController{}, "Get:InitLogin"),
 		//车次处理
 		beego.NSNamespace("/schedule",
 			beego.NSBefore(Auth),
