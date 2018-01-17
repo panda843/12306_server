@@ -18,17 +18,19 @@ var (
 	OrderInitOrderURL = "https://kyfw.12306.cn/otn/confirmPassenger/initDc"
 	//检测订单
 	OrderCheckedURL = "https://kyfw.12306.cn/otn/confirmPassenger/checkOrderInfo"
+	//获取车票数和排队人数
+	OrderGetCountURL = "https://kyfw.12306.cn/otn/confirmPassenger/getQueueCount"
 )
 
 type Order struct {
 	Base
 	SubmitToken      string
-	keyCheckIsChange string
-	leftTicketStr    string
+	KeyCheckIsChange string
+	LeftTicketStr    string
 }
 
 //下单
-func (order *Order) PlaceAnOrder(secret, start, end, date, ticketStr, passengerStr string) error {
+func (order *Order) PlaceAnOrder(secret,trainNo,trainCode,seatType,start, end, date,formatDate, ticketStr, passengerStr string) error {
 	//提交订单
 	errSub := order.SubmitOrder(secret, start, end, date)
 	if errSub != nil {
@@ -43,6 +45,11 @@ func (order *Order) PlaceAnOrder(secret, start, end, date, ticketStr, passengerS
 	_, errCheckd := order.CheckConfirmOrder(ticketStr, passengerStr)
 	if errCheckd != nil {
 		return errCheckd
+	}
+	//获取排队信息
+	errQueue := order.GetOrderTicketQueueInfo(formatDate,trainNo,trainCode,seatType,start,end)
+	if errQueue != nil {
+		return errQueue
 	}
 	return nil
 }
@@ -86,17 +93,35 @@ func (order *Order) InitConfirmOrder() error {
 	if errSend != nil {
 		return errSend
 	}
+	//获取KeyCheck
 	var keyCheckRegexp = regexp.MustCompile(`'key_check_isChange':'[\S]+','left`)
-	beego.Debug("key_check_isChange:", keyCheckRegexp.FindAllStringSubmatch(string(data), -1))
+	keyCacheSource := keyCheckRegexp.FindAllStringSubmatch(string(data), -1)
+	if len(keyCacheSource) == 0 {
+		return errors.New("获取key_check_isChange失败")
+	}
+	if len(keyCacheSource[0]) == 0 {
+		return errors.New("获取key_check_isChange失败")
+	}
+	keyCacheStr := strings.Split(keyCacheSource[0][0],`'`)[3]
+	order.KeyCheckIsChange = keyCacheStr
+	//获取leftTicketStr
 	var ticketRegexp = regexp.MustCompile(`'leftTicketStr':'[\S]+','limit`)
-	beego.Debug("leftTicketStr:", ticketRegexp.FindAllStringSubmatch(string(data), -1))
+	ticketSource := ticketRegexp.FindAllStringSubmatch(string(data), -1)
+	if len(ticketSource) == 0 {
+		return errors.New("获取leftTicketStr失败")
+	}
+	if len(ticketSource[0]) == 0 {
+		return errors.New("获取leftTicketStr失败")
+	}
+	ticketStr := strings.Split(ticketSource[0][0],`'`)[3]
+	order.LeftTicketStr = ticketStr
 	//获取submitToken
 	splData := strings.Split(string(data), "\n")
 	if len(splData) > 64 {
 		order.SubmitToken = string([]byte(splData[11])[32:64])
 		return nil
 	} else {
-		return errors.New("获取订单token出错")
+		return errors.New("获取submitToken失败")
 	}
 	return nil
 }
@@ -105,7 +130,6 @@ func (order *Order) InitConfirmOrder() error {
 func (order *Order) CheckConfirmOrder(ticketStr, passengerStr string) ([]byte, error) {
 	params := fmt.Sprintf("cancel_flag=2&bed_level_order_num=000000000000000000000000000000&passengerTicketStr=%s&oldPassengerStr=%s"+
 		"&tour_flag=dc&randCode=&_json_att=&REPEAT_SUBMIT_TOKEN=%s", ticketStr, passengerStr, order.SubmitToken)
-	//params := fmt.Sprintf("cancel_flag=2&bed_level_order_num=000000000000000000000000000000&passengerTicketStr=%s&oldPassengerStr=%s&tour_flag=dc&randCode=&whatsSelect=1&_json_att=&REPEAT_SUBMIT_TOKEN=%s",ticketStr,passengerStr,order.Token)
 	err := request.CreateHttpRequest(OrderCheckedURL, "POST", params)
 	if err != nil {
 		return nil, err
@@ -127,4 +151,29 @@ func (order *Order) CheckConfirmOrder(ticketStr, passengerStr string) ([]byte, e
 		return nil, errors.New(msg[0].(string))
 	}
 	return data, nil
+}
+
+func (order *Order) GetOrderTicketQueueInfo(trainDate,trainNo,trainCode,seatType,startCode,endCode string) error{
+	params := fmt.Sprintf("train_date=%s&train_no=%s&stationTrainCode=%s&seatType=%s&fromStationTelecode=%s"+
+	"&toStationTelecode=%s&leftTicket=%s&purpose_codes=00&train_location=PA&_json_att=&REPEAT_SUBMIT_TOKEN=%s",
+	trainDate,trainNo,trainCode,seatType,startCode,endCode,order.LeftTicketStr,order.SubmitToken)
+	err := request.CreateHttpRequest(OrderGetCountURL,"POST",params)
+	request.SetHeader("Referer","https://kyfw.12306.cn/otn/confirmPassenger/initDc")
+	request.SetHeader("X-Requested-With","XMLHttpRequest")
+	if err != nil {
+		return err
+	}
+	data,errSend := request.Send()
+	if errSend != nil {
+		return errSend
+	}
+	var queRes map[string]interface{}
+	errJson := json.Unmarshal(data,&queRes)
+	if errJson != nil {
+		return errJson
+	}
+	if queRes["status"].(bool) != true {
+		return errors.New("getCount Fail")
+	}
+	return nil
 }
