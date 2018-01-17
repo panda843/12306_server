@@ -6,10 +6,14 @@ import (
 	// "fmt"
 	// "math/rand"
 	// "net/url"
+
+	"log"
 	"time"
 
 	"net/http"
 	// "github.com/astaxie/beego"
+
+	"github.com/astaxie/beego"
 	"github.com/chuanshuo843/12306_server/utils"
 	"github.com/chuanshuo843/12306_server/utils/kyfw"
 )
@@ -49,9 +53,6 @@ var (
 // 	UserName      string `json:"username"`
 // }
 
-// Ureq .
-var Ureq *utils.Request
-
 // UserController Operations about Users
 type UserController struct {
 	BaseController
@@ -59,9 +60,14 @@ type UserController struct {
 
 // Prepare .
 func (u *UserController) Prepare() {
-	if Ureq == nil {
-		Ureq = utils.NewRequest()
-		kyfw.SetRequest(Ureq)
+	req := u.req()
+	if req == nil {
+		sid := u.Ctx.Input.CruSession.SessionID()
+		log.Println("sid = ", sid)
+		if sid != "" {
+			req := utils.NewRequest()
+			kyfw.Store(sid, req)
+		}
 	}
 }
 
@@ -70,8 +76,10 @@ func (u *UserController) Login() {
 	verify := u.GetString("verify")
 	username := u.GetString("username")
 	password := u.GetString("password")
+
+	req := u.req()
 	// key := u.GetString("key")
-	errLogin := kyfwUser.Login(username, password, verify)
+	errLogin := kyfwUser.Login(req, username, password, verify)
 	if errLogin != nil {
 		u.Fail().SetMsg(errLogin.Error()).Send()
 	}
@@ -84,24 +92,24 @@ func (u *UserController) Login() {
 	jwt.Payload.Exp = time.Now().Unix() + 70000
 	jwt.Payload.Data = `{"username":"` + kyfwUser.UserName + `"}`
 	token := jwt.Encode()
-	reJson := map[string]string{"access_token": token}
+	reJSON := map[string]string{"access_token": token}
+	kyfw.Store(token, req)
+	kyfw.Delete(u.Ctx.Input.Cookie(beego.BConfig.WebConfig.Session.SessionName))
 
-	kyfw.Store(token, Ureq)
-	Ureq = nil
-
-	u.Success().SetMsg("登录成功").SetData(reJson).Send()
+	u.Success().SetMsg("登录成功").SetData(reJSON).Send()
 }
 
 // VerifyCode 获取12306登录验证码
 func (u *UserController) VerifyCode() {
+	req := u.req()
 	//初始化登录页面
-	_, errInit := kyfwUser.InitLogin()
+	_, errInit := kyfwUser.InitLogin(req)
 	if errInit != nil {
 		http.Error(u.Ctx.ResponseWriter, "Not Found", 404)
 		return
 	}
 	//获取验证码
-	data, errVer := kyfwUser.GetVerifyImages()
+	data, errVer := kyfwUser.GetVerifyImages(req)
 	if errVer != nil {
 		http.Error(u.Ctx.ResponseWriter, "Not Found", 404)
 		return

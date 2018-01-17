@@ -14,7 +14,8 @@ type ScheduleController struct {
 
 // @router /init [get]
 func (s *ScheduleController) InitQuery() {
-	err := kyfwQuery.InitQuerySchedule()
+	req := s.req()
+	err := kyfwQuery.InitQuerySchedule(req)
 	if err != nil {
 		s.Fail().SetMsg(err.Error()).Send()
 		return
@@ -29,6 +30,7 @@ func (s *ScheduleController) InitQuery() {
 // @Failure 403 :uid is empty
 // @router / [get]
 func (s *ScheduleController) Get() {
+	req := s.tokenReq()
 	startStation := s.GetString("start_station")
 	endStation := s.GetString("end_station")
 	startCode := s.GetString("start_code")
@@ -38,7 +40,7 @@ func (s *ScheduleController) Get() {
 		s.Fail().SetMsg("请选择正确的站台信息").Send()
 		return
 	}
-	data, err := kyfwQuery.GetSchedule(startStation, endStation, startCode, endCode, date)
+	data, err := kyfwQuery.GetSchedule(req, startStation, endStation, startCode, endCode, date)
 	if err != nil {
 		s.Fail().SetMsg(err.Error()).Send()
 		return

@@ -2,9 +2,11 @@ package controllers
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/astaxie/beego"
 	"github.com/chuanshuo843/12306_server/utils"
+	"github.com/chuanshuo843/12306_server/utils/kyfw"
 )
 
 type _ResData struct {
@@ -16,7 +18,8 @@ type _ResData struct {
 // BaseController Operations about Users
 type BaseController struct {
 	beego.Controller
-	req *utils.Request
+
+	UserReq *utils.Request
 }
 
 var _res _ResData
@@ -38,6 +41,37 @@ func init() {
 // 		}
 // 	}
 // }
+
+// req .
+func (b *BaseController) req() *utils.Request {
+	cookie := b.Ctx.Input.Cookie(beego.BConfig.WebConfig.Session.SessionName)
+	if cookie == "" {
+		cookie = b.Ctx.Input.CruSession.SessionID()
+	}
+	req := kyfw.Load(cookie)
+
+	return req
+}
+
+// tokenReq .
+func (b *BaseController) tokenReq() *utils.Request {
+	//只检测OPTIONS以外的请求
+	if !b.Ctx.Input.Is("OPTIONS") {
+		authString := b.Ctx.Input.Header("Authorization")
+		if authString == "" {
+			return nil
+		}
+		kv := strings.Split(authString, " ")
+		if len(kv) != 2 || kv[0] != "Bearer" {
+			return nil
+		}
+		token := kv[1]
+
+		return kyfw.Load(token)
+	}
+
+	return nil
+}
 
 // Success .
 func (b *BaseController) Success() *BaseController {

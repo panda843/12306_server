@@ -7,23 +7,30 @@ import (
 )
 
 var (
-	request *utils.Request
+// request *utils.Request
 )
 
-// SetRequest .
-func SetRequest(req *utils.Request) {
-	if !req.InitBool {
-		req.InitRequest()
-	}
+// // SetRequest .
+// func SetRequest(req *utils.Request) {
+// 	if !req.InitBool {
+// 		req.InitRequest()
+// 	}
 
-	request = req
-}
+// 	log.Printf("kyfw request varibale eq: %p \n", request)
+// 	log.Printf("kyfw parameter varibale eq: %p \n", req)
+
+// 	request = req
+
+// 	log.Printf("kyfw request varibale eq: %p \n", request)
+// 	log.Printf("kyfw parameter varibale eq: %p \n", req)
+// }
 
 // UserRequest .
 var UserRequest *sync.Map
 
 func init() {
 	UserRequest = &sync.Map{}
+	// request = &utils.Request{}
 }
 
 // Base .
@@ -53,4 +60,9 @@ func Load(key string) *utils.Request {
 		return nil
 	}
 	return req
+}
+
+// Delete .
+func Delete(key string) {
+	UserRequest.Delete(key)
 }

@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"github.com/astaxie/beego"
+	"github.com/chuanshuo843/12306_server/utils"
 )
 
 const (
@@ -34,7 +35,7 @@ type User struct {
 }
 
 //登录页面初始化
-func (user *User) InitLogin() ([]byte, error) {
+func (user *User) InitLogin(request *utils.Request) ([]byte, error) {
 	err := request.CreateHttpRequest(UserLoginInit, "GET", nil)
 	if err != nil {
 		return nil, err
@@ -45,7 +46,7 @@ func (user *User) InitLogin() ([]byte, error) {
 }
 
 //获取验证码
-func (user *User) GetVerifyImages() ([]byte, error) {
+func (user *User) GetVerifyImages(request *utils.Request) ([]byte, error) {
 	err := request.CreateHttpRequest(fmt.Sprintf(UserGetVerifyImg, rand.Float64()), "GET", nil)
 	if err != nil {
 		return nil, err
@@ -56,7 +57,7 @@ func (user *User) GetVerifyImages() ([]byte, error) {
 }
 
 //获取12306登录token
-func (user *User) Get12306Token(appToken string) error {
+func (user *User) Get12306Token(request *utils.Request, appToken string) error {
 	err := request.CreateHttpRequest(UserGetToken, "POST", &url.Values{"tk": {appToken}})
 	if err != nil {
 		return err
@@ -83,8 +84,8 @@ func (user *User) Get12306Token(appToken string) error {
 	return nil
 }
 
-//检测用户是否登录
-func (user *User) CheckIsLogin() (string, error) {
+// CheckIsLogin 检测用户是否登录
+func (user *User) CheckIsLogin(request *utils.Request) (string, error) {
 	err := request.CreateHttpRequest(UserAuthUAMTK, "POST", &url.Values{"appid": {"otn"}})
 	if err != nil {
 		return "", err
@@ -112,26 +113,26 @@ func (user *User) CheckIsLogin() (string, error) {
 	return checkRes["newapptk"].(string), nil
 }
 
-//用户登录
-func (user *User) Login(username, password, verify string) error {
+// Login 用户登录
+func (user *User) Login(request *utils.Request, username, password, verify string) error {
 	log.Printf("Login = %p \n", request)
 	//检测验证码
-	errVer := user.CheckVerifyCode(verify)
+	errVer := user.CheckVerifyCode(request, verify)
 	if errVer != nil {
 		return errVer
 	}
 	//登录12306
-	errLogin := user.Login12306(username, password)
+	errLogin := user.Login12306(request, username, password)
 	if errLogin != nil {
 		return errLogin
 	}
 	//检测用户是否登录
-	appTk, errCheck := user.CheckIsLogin()
+	appTk, errCheck := user.CheckIsLogin(request)
 	if errCheck != nil {
 		return errCheck
 	}
 	//获取用户Token
-	errTk := user.Get12306Token(appTk)
+	errTk := user.Get12306Token(request, appTk)
 	if errTk != nil {
 		return errTk
 	}
@@ -140,7 +141,7 @@ func (user *User) Login(username, password, verify string) error {
 }
 
 //登录12306
-func (user *User) Login12306(username, password string) error {
+func (user *User) Login12306(request *utils.Request, username, password string) error {
 	err := request.CreateHttpRequest(UserLogin12306, "POST", &url.Values{"username": {username}, "password": {password}, "appid": {"otn"}})
 	if err != nil {
 		return err
@@ -168,7 +169,7 @@ func (user *User) Login12306(username, password string) error {
 }
 
 //检测验证码
-func (user *User) CheckVerifyCode(verifyCode string) error {
+func (user *User) CheckVerifyCode(request *utils.Request, verifyCode string) error {
 	log.Printf("CheckVerifyCode = %p \n", request)
 	err := request.CreateHttpRequest(UserCheckVerify, "POST", &url.Values{"answer": {verifyCode}, "login_site": {"E"}, "rand": {"sjrand"}})
 	if err != nil {

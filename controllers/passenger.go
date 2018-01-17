@@ -17,7 +17,8 @@ type PassengerController struct {
 // @Failure 403 :uid is empty
 // @router / [get]
 func (p *PassengerController) Get() {
-	data, err := kyfwQuery.GetPassenger()
+	req := p.tokenReq()
+	data, err := kyfwQuery.GetPassenger(req)
 	if err != nil {
 		p.Fail().SetMsg(err.Error()).Send()
 		return

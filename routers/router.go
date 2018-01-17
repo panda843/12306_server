@@ -15,26 +15,10 @@ import (
 	"github.com/astaxie/beego/context"
 	"github.com/chuanshuo843/12306_server/controllers"
 	"github.com/chuanshuo843/12306_server/utils"
-	"github.com/chuanshuo843/12306_server/utils/kyfw"
 )
 
 func init() {
 	ns := beego.NewNamespace("/v1",
-		beego.NSCond(
-			func(ctx *context.Context) bool {
-				authString := ctx.Input.Header("Authorization")
-				if authString != "" {
-					kv := strings.Split(authString, " ")
-					if len(kv) == 2 && kv[0] == "Bearer" {
-						token := kv[1]
-						if token != "" {
-							req := kyfw.Load(token)
-							kyfw.SetRequest(req)
-						}
-					}
-				}
-				return true
-			}),
 		//登录
 		beego.NSRouter("/auth/login", &controllers.UserController{}, "Post:Login"),
 		beego.NSRouter("/auth/verifyCode", &controllers.UserController{}, "Get:VerifyCode"),
@@ -97,7 +81,7 @@ func Auth(ctx *context.Context) {
 //错误返回
 func AllowCross(ctx *context.Context) {
 	ctx.Output.Header("Cache-Control", "no-store")
-	ctx.Output.Header("Access-Control-Allow-Origin", "*")
+	ctx.Output.Header("Access-Control-Allow-Origin", "http://localhost:8080")
 	ctx.Output.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE,OPTIONS")
 	ctx.Output.Header("Access-Control-Allow-Headers", "Authorization")
 	ctx.Output.Header("WWW-Authenticate", `Bearer realm="`+beego.AppConfig.String("HostName")+`" error="Authorization" error_description="invalid Authorization"`)

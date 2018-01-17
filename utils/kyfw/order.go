@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/astaxie/beego"
+	"github.com/chuanshuo843/12306_server/utils"
 )
 
 var (
@@ -25,18 +26,18 @@ type Order struct {
 }
 
 //下单
-func (order *Order) PlaceAnOrder(secret, start, end, date string) error {
+func (order *Order) PlaceAnOrder(request *utils.Request, secret, start, end, date string) error {
 	//提交订单
-	errSub := order.SubmitOrder(secret, start, end, date)
+	errSub := order.SubmitOrder(request, secret, start, end, date)
 	if errSub != nil {
 		return errSub
 	}
 	//初始化订单确认页面
-	errInit := order.InitConfirmOrder()
+	errInit := order.InitConfirmOrder(request)
 	if errInit != nil {
 		return errInit
 	}
-	_, errCheckd := order.CheckConfirmOrder("", "")
+	_, errCheckd := order.CheckConfirmOrder(request, "", "")
 	if errCheckd != nil {
 		return errCheckd
 	}
@@ -44,7 +45,7 @@ func (order *Order) PlaceAnOrder(secret, start, end, date string) error {
 }
 
 //提交订单
-func (order *Order) SubmitOrder(secret, start, end, date string) error {
+func (order *Order) SubmitOrder(request *utils.Request, secret, start, end, date string) error {
 	params := fmt.Sprintf("secretStr=%s&train_date=%s&back_train_date=%s&tour_flag=dc&purpose_codes=ADULT&"+
 		"query_from_station_name=%s&query_to_station_name=%s&undefined=", secret, date,
 		date, start, end)
@@ -72,7 +73,7 @@ func (order *Order) SubmitOrder(secret, start, end, date string) error {
 }
 
 //初始化确认订单页面
-func (order *Order) InitConfirmOrder() error {
+func (order *Order) InitConfirmOrder(request *utils.Request) error {
 	err := request.CreateHttpRequest(OrderInitOrderURL, "POST", &url.Values{"_json_att": {""}})
 	if err != nil {
 		return err
@@ -87,13 +88,14 @@ func (order *Order) InitConfirmOrder() error {
 	if len(splData) > 64 {
 		order.Token = string([]byte(splData[11])[32:64])
 		return nil
-	} else {
-		return errors.New("获取订单token出错")
 	}
+
+	return errors.New("获取订单token出错")
+
 }
 
 //检测订单
-func (order *Order) CheckConfirmOrder(ticketStr, passengerStr string) ([]byte, error) {
+func (order *Order) CheckConfirmOrder(request *utils.Request, ticketStr, passengerStr string) ([]byte, error) {
 	paramsMap := &url.Values{
 		"cancel_flag":         {"2"},
 		"bed_level_order_num": {"000000000000000000000000000000"},

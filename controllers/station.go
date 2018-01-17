@@ -22,7 +22,8 @@ type StationController struct {
 // @Failure 403 :uid is empty
 // @router / [get]
 func (s *StationController) Get() {
-	data,err := kyfwQuery.GetStations()
+	req := s.tokenReq()
+	data, err := kyfwQuery.GetStations(req)
 	if err != nil {
 		s.Fail().SetMsg(err.Error()).Send()
 		return

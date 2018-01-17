@@ -142,13 +142,3 @@ func (jwt *Jwt) Checkd(token string) bool {
 	}
 	return true
 }
-
-// Token .
-func Token(authString string) string {
-	kv := strings.Split(authString, " ")
-	if len(kv) != 2 || kv[0] != "Bearer" {
-		return ""
-	}
-	token := kv[1]
-	return token
-}

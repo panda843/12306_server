@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/chuanshuo843/12306_server/utils"
 )
 
 const (
@@ -28,7 +30,7 @@ type Query struct {
 }
 
 //获取站台信息
-func (query *Query) GetStations() (string, error) {
+func (query *Query) GetStations(request *utils.Request) (string, error) {
 	err := request.CreateHttpRequest(QueryGetStation, "GET", nil)
 	if err != nil {
 		return "", err
@@ -45,7 +47,7 @@ func (query *Query) GetStations() (string, error) {
 }
 
 //查询车次信息Init
-func (query *Query) InitQuerySchedule() error {
+func (query *Query) InitQuerySchedule(request *utils.Request) error {
 	//获取查询地址
 	err := request.CreateHttpRequest(QueryScheduleInit, "GET", nil)
 	if err != nil {
@@ -58,7 +60,7 @@ func (query *Query) InitQuerySchedule() error {
 }
 
 //添加车次查询日志
-func (query *Query) AddQueryScheduleLog(startStation, endStation, startCode, endCode, date string) error {
+func (query *Query) AddQueryScheduleLog(request *utils.Request, startStation, endStation, startCode, endCode, date string) error {
 	//设置Cookie
 	cookies := []*http.Cookie{
 		&http.Cookie{Name: "_jc_save_fromDate", Value: date},
@@ -81,16 +83,16 @@ func (query *Query) AddQueryScheduleLog(startStation, endStation, startCode, end
 }
 
 //查询车次信息
-func (query *Query) GetSchedule(startStation, endStation, startCode, endCode, date string) (string, error) {
+func (query *Query) GetSchedule(request *utils.Request, startStation, endStation, startCode, endCode, date string) (string, error) {
 	//检测查询URL
 	if query.ScheduleQueryURL == "" {
-		errQueryURL := query.InitQuerySchedule()
+		errQueryURL := query.InitQuerySchedule(request)
 		if errQueryURL != nil {
 			return "", errQueryURL
 		}
 	}
 	//添加查询日志
-	errLog := query.AddQueryScheduleLog(startStation, endStation, startCode, endCode, date)
+	errLog := query.AddQueryScheduleLog(request, startStation, endStation, startCode, endCode, date)
 	if errLog != nil {
 		return "", errLog
 	}
@@ -111,7 +113,7 @@ func (query *Query) GetSchedule(startStation, endStation, startCode, endCode, da
 }
 
 //查询乘客信息
-func (query *Query) GetPassenger() ([]byte, error) {
+func (query *Query) GetPassenger(request *utils.Request) ([]byte, error) {
 	request.CreateHttpRequest(QueryPassenger, "GET", nil)
 	request.SetHeader("X-Requested-With", "XMLHttpRequest")
 	data, err := request.Send()
