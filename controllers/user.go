@@ -97,7 +97,7 @@ func (u *UserController) VerifyCode() {
 	data, errVer := kyfwUser.GetVerifyImages()
 	if errVer != nil {
 		http.Error(u.Ctx.ResponseWriter, "Not Found", 404)
-		return
+		return 
 	}
 	u.Ctx.Output.ContentType("png")
 	u.Ctx.Output.Body(data)

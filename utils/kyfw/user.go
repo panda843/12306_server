@@ -8,10 +8,6 @@ import (
 	"net/url"
 )
 
-var (
-	loginCount = 0
-)
-
 const (
 	//用户登录Init
 	UserLoginInit = "https://kyfw.12306.cn/otn/login/init"
@@ -93,8 +89,9 @@ func (user *User) CheckIsLogin() (string, error) {
 	if sendErr != nil {
 		return "", sendErr
 	}
+	//没有取到数据时递归调用直到取到数据为止
 	if len(data) == 0 {
-		return "", errors.New("检测登录返回数据为空")
+		return user.CheckIsLogin()
 	}
 	//解析返回数据
 	var checkRes map[string]interface{}
@@ -148,25 +145,18 @@ func (user *User) Login12306(username, password string) error {
 	if errSend != nil {
 		return errSend
 	}
-	if len(data) != 0 {
-		var loginRes map[string]interface{}
-		errJson := json.Unmarshal(data, &loginRes)
-		if errJson != nil {
-			return errJson
-		}
-		//{"result_message":"登录成功","result_code":0,"uamtk":"tnRPMlCjrDGm3k5IbzlRKQrbmnKToZC_8WN4ePn32Mkhuc1c0"}
-		if loginRes["result_code"].(float64) != 0 {
-			return errors.New(loginRes["result_message"].(string))
-		}
-		return nil
-	} else {
-		//数据为空时递归十次获取数据
-		if loginCount > 10 {
-			loginCount = 0
-			return errors.New("登录返回数据为空")
-		}
-		user.Login12306(username, password)
-		loginCount++
+	//没有取到数据时递归调用直到取到数据为止
+	if len(data) == 0 {
+		return user.Login12306(username, password)
+	}
+	var loginRes map[string]interface{}
+	errJson := json.Unmarshal(data, &loginRes)
+	if errJson != nil {
+		return errJson
+	}
+	//{"result_message":"登录成功","result_code":0,"uamtk":"tnRPMlCjrDGm3k5IbzlRKQrbmnKToZC_8WN4ePn32Mkhuc1c0"}
+	if loginRes["result_code"].(float64) != 0 {
+		return errors.New(loginRes["result_message"].(string))
 	}
 	return nil
 }

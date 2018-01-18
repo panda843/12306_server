@@ -9,10 +9,6 @@ import (
 	"strings"
 )
 
-var (
-	QueryScheduleCount = 0
-)
-
 const (
 	//获取站台信息
 	QueryGetStation = "https://kyfw.12306.cn/otn/resources/js/framework/station_name.js?station_version=1.9042"
@@ -95,15 +91,9 @@ func (query *Query) QueryScheduleInfo(date, startCode, endCode string) (string, 
 	if errQuery != nil {
 		return "", errQuery
 	}
+	//没有取到数据时递归调用直到取到数据为止
 	if len(data) == 0 {
-		if QueryScheduleCount > 5 {
-			loginCount = 0
-			return "", errors.New("车次查询失败,返回数据为空")
-		}
-		QueryScheduleCount++
-		query.QueryScheduleInfo(date, startCode, endCode)
-	} else {
-		return string(data), nil
+		return query.QueryScheduleInfo(date, startCode, endCode)
 	}
 	return string(data), nil
 }

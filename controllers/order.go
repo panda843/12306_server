@@ -1,14 +1,8 @@
 package controllers
 
 import (
-	"net/url"
 
 	"github.com/chuanshuo843/12306_server/utils/kyfw"
-	// "net/http"
-	// "net/url"
-	// "strings"
-	// "fmt"
-	// "github.com/astaxie/beego"
 )
 
 var (
@@ -31,18 +25,19 @@ func (o *OrderController) Post() {
 	secretStr := o.GetString("secret_key")
 	trainNo := o.GetString("train_no")
 	trainCode := o.GetString("train_code")
-	seatType := o.GetString("seat_type")
 	trainDate := o.GetString("train_date")
 	formatDate := o.GetString("format_date")
+	// formatDate := "Thu+Jan+18+2018+00%3A00%3A00+GMT%2B0800+(%E4%B8%AD%E5%9B%BD%E6%A0%87%E5%87%86%E6%97%B6%E9%97%B4)"
 	startStation := o.GetString("start_station")
 	endStation := o.GetString("end_station")
-	ticketStr := o.GetString("ticket_str")
+	startCode := o.GetString("start_code")
+	endCode := o.GetString("end_code")
+	ticketStr := o.GetString("ticket_str") 
 	passengerStr := o.GetString("passenger_str")
-	pasSec, _ := url.Parse(secretStr)
-	err := kyfwOrder.PlaceAnOrder(pasSec.String(), trainNo,trainCode,seatType,startStation, endStation, trainDate,formatDate,ticketStr,passengerStr)
+	err := kyfwOrder.PlaceAnOrder(secretStr, trainNo,trainCode,startStation,startCode, endStation, endCode,trainDate,formatDate,ticketStr,passengerStr)
 	if err != nil {
 		o.Fail().SetMsg(err.Error()).Send()
 		return
 	}
-	o.Fail().SetMsg("DDDTTTTSSSSS").Send()
+	o.Success().SetMsg("任务添加成功").Send() 
 }
