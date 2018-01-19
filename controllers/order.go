@@ -2,12 +2,12 @@ package controllers
 
 import (
 
-	"github.com/chuanshuo843/12306_server/utils/kyfw"
+	// "github.com/chuanshuo843/12306_server/utils/kyfw"
 )
 
-var (
-	kyfwOrder kyfw.Order
-)
+// var (
+// 	kyfwOrder kyfw.Order
+// )
 
 // PassengerController Operations about object
 type OrderController struct {
@@ -34,7 +34,7 @@ func (o *OrderController) Post() {
 	endCode := o.GetString("end_code")
 	ticketStr := o.GetString("ticket_str") 
 	passengerStr := o.GetString("passenger_str")
-	err := kyfwOrder.PlaceAnOrder(secretStr, trainNo,trainCode,startStation,startCode, endStation, endCode,trainDate,formatDate,ticketStr,passengerStr)
+	err := o.Kyfw.PlaceAnOrder(secretStr, trainNo,trainCode,startStation,startCode, endStation, endCode,trainDate,formatDate,ticketStr,passengerStr)
 	if err != nil {
 		o.Fail().SetMsg(err.Error()).Send()
 		return

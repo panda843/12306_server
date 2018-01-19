@@ -19,24 +19,29 @@ import (
 
 //Request
 type Request struct {
-	HttpClient           http.Client
+	HttpClient           *http.Client
 	HttpRequest          *http.Request
 	HttpResponse         *http.Response
 	DisableDefaultHeader bool
 }
 
 //初始化Request
-func (request *Request) InitRequest() {
+func InitRequest() *Request{
+	req := &Request{
+		HttpClient:&http.Client{},
+		HttpRequest:&http.Request{},
+		HttpResponse:&http.Response{},
+	}
 	//初始化CookieJar
-	request.HttpClient.Jar, _ = cookiejar.New(&cookiejar.Options{
+	req.HttpClient.Jar, _ = cookiejar.New(&cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
 	})
 	//设置CheckRedirect
-	request.HttpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	req.HttpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
 	//设置Transport
-	request.HttpClient.Transport = &http.Transport{
+	req.HttpClient.Transport = &http.Transport{
 		// 12306 https CA认证
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		// TLSClientConfig: &tls.Config{RootCAs: pool},
@@ -49,7 +54,7 @@ func (request *Request) InitRequest() {
 		IdleConnTimeout:     90 * time.Second,
 		TLSHandshakeTimeout: 60 * time.Second,
 	}
-
+	return req
 }
 
 //创建请求

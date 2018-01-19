@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	request utils.Request
+	request *utils.Request
 )
 
 type Base struct {
@@ -13,7 +13,7 @@ type Base struct {
 }
 
 func init(){
-	request.InitRequest()
+	request = utils.InitRequest()
 }
 
 // func (base *Base) InitBase(){
