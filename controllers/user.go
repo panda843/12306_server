@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"net/http"
+
 	"github.com/chuanshuo843/12306_server/utils"
 )
 
@@ -29,12 +30,12 @@ func (u *UserController) InitLogin() {
 		u.Fail().SetMsg(err.Error()).Send()
 		return
 	}
-	u.Success().SetData(`{"app_id":"`+sid+`"}`).Send()
+	u.Success().SetData(`{"app_id":"` + sid + `"}`).Send()
 }
 
 //登录12306
 func (u *UserController) Login() {
-	if u.Kyfw  == nil{
+	if u.Kyfw == nil {
 		u.Fail().SetMsg("获取用户数据失败").Send()
 		return
 	}
@@ -49,20 +50,20 @@ func (u *UserController) Login() {
 	//生成JWT
 	jwt := utils.InitJwt()
 	jwt.Payload.Jti = time.Now().Unix()
-	jwt.Payload.Iat = time.Now().Unix() - 30 //减30秒以防请求过快
-	jwt.Payload.Nbf = time.Now().Unix() - 30 //减30秒以防请求过快
+	jwt.Payload.Iat = time.Now().Unix() - 30    //减30秒以防请求过快
+	jwt.Payload.Nbf = time.Now().Unix() - 30    //减30秒以防请求过快
 	jwt.Payload.Exp = time.Now().Unix() + 43200 //有效期十二个小时
 	jwt.Payload.Data = `{"username":"` + u.Kyfw.LoginName + `"}`
 	token := jwt.Encode()
-	kyfws.Move(u.AppID,token)
-	u.res.IsLogin = true
+	kyfws.Move(u.AppID, token)
+	u.res.IsLogin = u.Kyfw.IsLogin
 	reJson := map[string]string{"access_token": token}
 	u.Success().SetMsg("登录成功").SetData(reJson).Send()
 }
 
 //获取12306登录验证码
 func (u *UserController) VerifyCode() {
-	if u.Kyfw  == nil{
+	if u.Kyfw == nil {
 		u.Fail().SetMsg("获取用户数据失败").Send()
 		return
 	}
@@ -70,7 +71,7 @@ func (u *UserController) VerifyCode() {
 	data, errVer := u.Kyfw.GetVerifyImages()
 	if errVer != nil {
 		http.Error(u.Ctx.ResponseWriter, "Not Found", 404)
-		return 
+		return
 	}
 	u.Ctx.Output.ContentType("png")
 	u.Ctx.Output.Body(data)

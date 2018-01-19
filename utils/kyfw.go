@@ -1,19 +1,20 @@
 package utils
 
 import (
-	"time"
-	"github.com/astaxie/beego"
-	"sync"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"crypto/md5"
-	"encoding/hex"
-	"net/http"
-	"strings"
 	"math/rand"
+	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/astaxie/beego"
 )
 
 const (
@@ -54,51 +55,51 @@ const (
 )
 
 type Kyfw struct {
-	Request *Request
-	IsLogin  bool
-	LoginName string
-	LoginToken    string
-	QueryScheduleURL string
+	Request               *Request
+	IsLogin               bool
+	LoginName             string
+	LoginToken            string
+	QueryScheduleURL      string
 	OrderSubmitToken      string
 	OrderKeyCheckIsChange string
 	OrderLeftTicketStr    string
-	OrderTrainLocation string
-	LoginNumber int
-	CheckLoginNumber int
-	QueryNumber int
-	OrderSubmitNumber int
-	OrderCheckdNumber int
-	OrderGetCountNumber int
-	OrderJoinBuyNumber int
-	OrderQueryWaitNumber int
-	MaxLoopNumber int
-
+	OrderTrainLocation    string
+	LoginNumber           int
+	CheckLoginNumber      int
+	QueryNumber           int
+	OrderSubmitNumber     int
+	OrderCheckdNumber     int
+	OrderGetCountNumber   int
+	OrderJoinBuyNumber    int
+	OrderQueryWaitNumber  int
+	MaxLoopNumber         int
 }
 
 type KyfwList struct {
 	UserKyfw *sync.Map
 }
 
-func InitKyfwList() *KyfwList{
+func InitKyfwList() *KyfwList {
 	return &KyfwList{
 		UserKyfw: &sync.Map{},
 	}
 }
 
-func (kyfws *KyfwList)Create(key string) *Kyfw {
+func (kyfws *KyfwList) Create(key string) *Kyfw {
 	kyf := &Kyfw{
-		Request:InitRequest(),
-		MaxLoopNumber:5,
+		Request:       InitRequest(),
+		MaxLoopNumber: 10,
+		IsLogin:       false,
 	}
-	kyfws.Set(key,kyf)
+	kyfws.Set(key, kyf)
 	return kyf
 }
 
-func (kyfws *KyfwList)Set(key string,ky *Kyfw) {
-	kyfws.UserKyfw.Store(kyfws.GetKeyHash(key),ky)
+func (kyfws *KyfwList) Set(key string, ky *Kyfw) {
+	kyfws.UserKyfw.Store(kyfws.GetKeyHash(key), ky)
 }
 
-func  (kyfws *KyfwList)Get(key string) *Kyfw {
+func (kyfws *KyfwList) Get(key string) *Kyfw {
 	v, ok := kyfws.UserKyfw.Load(kyfws.GetKeyHash(key))
 	if !ok {
 		return nil
@@ -106,28 +107,26 @@ func  (kyfws *KyfwList)Get(key string) *Kyfw {
 	return v.(*Kyfw)
 }
 
-func (kyfws *KyfwList)GetKeyHash(key string) string {
-    hasher := md5.New()
-    hasher.Write([]byte(key))
-    return hex.EncodeToString(hasher.Sum(nil))
+func (kyfws *KyfwList) GetKeyHash(key string) string {
+	hasher := md5.New()
+	hasher.Write([]byte(key))
+	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func (kyfws *KyfwList)Move(forKey,toKey string) error {
-	kyfws.Set(toKey,kyfws.Get(forKey))
+func (kyfws *KyfwList) Move(forKey, toKey string) error {
+	kyfws.Set(toKey, kyfws.Get(forKey))
 	kyfws.Delete(forKey)
 	return nil
 }
 
-func (kyfws *KyfwList) Foreach(){
-	kyfws.UserKyfw.Range(func(k , v interface{}) bool {
-        fmt.Println(k.(string), v)
-        return true
-    })
+func (kyfws *KyfwList) Foreach() {
+	kyfws.UserKyfw.Range(func(k, v interface{}) bool {
+		fmt.Println(k.(string), v)
+		return true
+	})
 }
 
-
-
-func (kyfws *KyfwList)Delete(key string) {
+func (kyfws *KyfwList) Delete(key string) {
 	kyfws.UserKyfw.Delete(kyfws.GetKeyHash(key))
 }
 
@@ -196,7 +195,7 @@ func (kyfw *Kyfw) CheckIsLogin() (string, error) {
 		if kyfw.CheckLoginNumber <= kyfw.MaxLoopNumber {
 			return kyfw.CheckIsLogin()
 		}
-		return "",errors.New("获取检测登录数据失败")
+		return "", errors.New("获取检测登录数据失败")
 	}
 	kyfw.CheckLoginNumber = 0
 	//解析返回数据
@@ -366,8 +365,9 @@ func (kyfw *Kyfw) QueryScheduleInfo(date, startCode, endCode string) (string, er
 		if kyfw.QueryNumber <= kyfw.MaxLoopNumber {
 			return kyfw.QueryScheduleInfo(date, startCode, endCode)
 		}
-		return "",errors.New("获取车次信息失败")
+		return "", errors.New("获取车次信息失败")
 	}
+	beego.Info("QuerySchedule:", string(data))
 	kyfw.QueryNumber = 0
 	return string(data), nil
 }
@@ -398,6 +398,7 @@ func (kyfw *Kyfw) GetPassenger() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	beego.Info("GetPassenger:", string(data))
 	//解析返回信息
 	var passRes map[string]interface{}
 	errJson := json.Unmarshal(data, &passRes)
@@ -407,6 +408,11 @@ func (kyfw *Kyfw) GetPassenger() ([]byte, error) {
 	if passRes["status"].(bool) != true {
 		return nil, errors.New(passRes["message"].(string))
 	}
+	passData := passRes["data"].(map[string]interface{})
+	if passData["isExist"].(bool) != true {
+		kyfw.IsLogin = false
+		return nil, errors.New(passData["exMsg"].(string))
+	}
 	return data, nil
 }
 
@@ -415,7 +421,7 @@ func (kyfw *Kyfw) GetSeatPrice(trainNo, startNo, endNo, seatType, date string) {
 }
 
 //下单 ---------------------------------------------------------------------Order
-func (kyfw *Kyfw) PlaceAnOrder(secret,trainNo,trainCode,start,startCode, end, endCode,date,formatDate, ticketStr, passengerStr string) error {
+func (kyfw *Kyfw) PlaceAnOrder(secret, trainNo, trainCode, start, startCode, end, endCode, date, formatDate, ticketStr, passengerStr string) error {
 	//提交订单
 	errSub := kyfw.SubmitOrder(secret, start, end, date)
 	if errSub != nil {
@@ -431,14 +437,14 @@ func (kyfw *Kyfw) PlaceAnOrder(secret,trainNo,trainCode,start,startCode, end, en
 	if errCheckd != nil {
 		return errCheckd
 	}
-	ticketArr := strings.Split(ticketStr,",")
+	ticketArr := strings.Split(ticketStr, ",")
 	//获取排队信息
-	errQueue := kyfw.GetOrderTicketQueueInfo(formatDate,trainNo,trainCode,ticketArr[0],startCode,endCode)
+	errQueue := kyfw.GetOrderTicketQueueInfo(formatDate, trainNo, trainCode, ticketArr[0], startCode, endCode)
 	if errQueue != nil {
 		return errQueue
 	}
 	//加入购买队列
-	errJoin := kyfw.JoinBuyTicketQueue(ticketStr,passengerStr)
+	errJoin := kyfw.JoinBuyTicketQueue(ticketStr, passengerStr)
 	if errJoin != nil {
 		return errJoin
 	}
@@ -469,11 +475,11 @@ func (kyfw *Kyfw) SubmitOrder(secret, start, end, date string) error {
 	//没有取到数据时递归调用直到取到数据为止
 	if len(data) == 0 {
 		if kyfw.OrderSubmitNumber <= kyfw.MaxLoopNumber {
-			time.Sleep(1*time.Second)
 			return kyfw.SubmitOrder(secret, start, end, date)
 		}
 		return errors.New("提交订单失败")
 	}
+	beego.Info("SubmitOrder:", string(data))
 	kyfw.OrderSubmitNumber = 0
 	var subRes map[string]interface{}
 	errJson := json.Unmarshal(data, &subRes)
@@ -507,7 +513,7 @@ func (kyfw *Kyfw) InitConfirmOrder() error {
 	if len(keyCacheSource[0]) == 0 {
 		return errors.New("获取key_check_isChange失败")
 	}
-	keyCacheStr := strings.Split(keyCacheSource[0][0],`'`)[3]
+	keyCacheStr := strings.Split(keyCacheSource[0][0], `'`)[3]
 	kyfw.OrderKeyCheckIsChange = keyCacheStr
 	//获取leftTicketStr
 	var ticketRegexp = regexp.MustCompile(`'leftTicketStr':'[\S]+','limit`)
@@ -516,9 +522,9 @@ func (kyfw *Kyfw) InitConfirmOrder() error {
 		return errors.New("获取leftTicketStr失败")
 	}
 	if len(ticketSource[0]) == 0 {
-		return errors.New("获取leftTicketStr失败")
+		return errors.New("���取leftTicketStr失败")
 	}
-	ticketStr := strings.Split(ticketSource[0][0],`'`)[3]
+	ticketStr := strings.Split(ticketSource[0][0], `'`)[3]
 	kyfw.OrderLeftTicketStr = ticketStr
 	//获取trian_location
 	var locationRegexp = regexp.MustCompile(`'train_location':'[\S]+'};`)
@@ -529,7 +535,7 @@ func (kyfw *Kyfw) InitConfirmOrder() error {
 	if len(locationSource[0]) == 0 {
 		return errors.New("获取trian_location失败")
 	}
-	locationStr := strings.Split(locationSource[0][0],`'`)[3]
+	locationStr := strings.Split(locationSource[0][0], `'`)[3]
 	kyfw.OrderTrainLocation = locationStr
 	//获取submitToken
 	splData := strings.Split(string(data), "\n")
@@ -560,11 +566,11 @@ func (kyfw *Kyfw) CheckConfirmOrder(ticketStr, passengerStr string) ([]byte, err
 	//没有取到数据时递归调用直到取到数据为止
 	if len(data) == 0 {
 		if kyfw.OrderCheckdNumber <= kyfw.MaxLoopNumber {
-			time.Sleep(1*time.Second)
 			return kyfw.CheckConfirmOrder(ticketStr, passengerStr)
 		}
-		return nil,errors.New("获取检测订单数据失败")
+		return nil, errors.New("获取检测订单数据失败")
 	}
+	beego.Info("CheckOrder:", string(data))
 	kyfw.OrderCheckdNumber = 0
 	var checkdRes map[string]interface{}
 	errJson := json.Unmarshal(data, &checkdRes)
@@ -577,38 +583,40 @@ func (kyfw *Kyfw) CheckConfirmOrder(ticketStr, passengerStr string) ([]byte, err
 	}
 	checkdSubmit := checkdRes["data"].(map[string]interface{})
 	if checkdSubmit["submitStatus"].(bool) != true {
-		return nil,errors.New(checkdSubmit["errMsg"].(string))
+		return nil, errors.New(checkdSubmit["errMsg"].(string))
 	}
 	return data, nil
 }
+
 //获取排队人数和Ticket信息
-func (kyfw *Kyfw) GetOrderTicketQueueInfo(trainDate,trainNo,trainCode,seatType,startCode,endCode string) error{
+func (kyfw *Kyfw) GetOrderTicketQueueInfo(trainDate, trainNo, trainCode, seatType, startCode, endCode string) error {
 	kyfw.OrderGetCountNumber++
 	params := fmt.Sprintf("train_date=%s&train_no=%s&stationTrainCode=%s&seatType=%s&fromStationTelecode=%s"+
-	"&toStationTelecode=%s&leftTicket=%s&purpose_codes=00&train_location=%s&_json_att=&REPEAT_SUBMIT_TOKEN=%s",
-	url.QueryEscape(trainDate),trainNo,trainCode,seatType,startCode,endCode,kyfw.OrderLeftTicketStr,kyfw.OrderTrainLocation,kyfw.OrderSubmitToken)
+		"&toStationTelecode=%s&leftTicket=%s&purpose_codes=00&train_location=%s&_json_att=&REPEAT_SUBMIT_TOKEN=%s",
+		url.QueryEscape(trainDate), trainNo, trainCode, seatType, startCode, endCode, kyfw.OrderLeftTicketStr, kyfw.OrderTrainLocation, kyfw.OrderSubmitToken)
 	//train_date=Thu+Jan+18+2018+00%3A00%3A00+GMT%2B0800+(%E4%B8%AD%E5%9B%BD%E6%A0%87%E5%87%86%E6%97%B6%E9%97%B4)&train_no=240000K4110T&stationTrainCode=K411&seatType=3&fromStationTelecode=BJP&toStationTelecode=TXP&leftTicket=%252BG1447KdMTkeq4e7Llen0%252BmM502nk7jzf4Re3fL57omLNhBAoYLby8tmSP8%253D&purpose_codes=00&train_location=PA&_json_att=&REPEAT_SUBMIT_TOKEN=f1bea73b1e94d07fab28b4fb63f12616
-	err := kyfw.Request.CreateHttpRequest(OrderGetCountURL,"POST",params)
-	kyfw.Request.SetHeader("Referer","https://kyfw.12306.cn/otn/confirmPassenger/initDc")
-	kyfw.Request.SetHeader("X-Requested-With","XMLHttpRequest")
+	err := kyfw.Request.CreateHttpRequest(OrderGetCountURL, "POST", params)
+	kyfw.Request.SetHeader("Referer", "https://kyfw.12306.cn/otn/confirmPassenger/initDc")
+	kyfw.Request.SetHeader("X-Requested-With", "XMLHttpRequest")
 	if err != nil {
-		return err 
+		return err
 	}
-	data,errSend := kyfw.Request.Send()
+	data, errSend := kyfw.Request.Send()
 	if errSend != nil {
 		return errSend
 	}
 	//没有取到数据时递归调用直到取到数据为止
 	if len(data) == 0 {
 		if kyfw.OrderGetCountNumber <= kyfw.MaxLoopNumber {
-			time.Sleep(1*time.Second)
-			return kyfw.GetOrderTicketQueueInfo(trainDate,trainNo,trainCode,seatType,startCode,endCode)
+			time.Sleep(1 * time.Second)
+			return kyfw.GetOrderTicketQueueInfo(trainDate, trainNo, trainCode, seatType, startCode, endCode)
 		}
 		return errors.New("获取排队人数信息失败")
 	}
+	beego.Info("QueueCount:", string(data))
 	kyfw.OrderGetCountNumber = 0
 	var queRes map[string]interface{}
-	errJson := json.Unmarshal(data,&queRes)
+	errJson := json.Unmarshal(data, &queRes)
 	if errJson != nil {
 		return errJson
 	}
@@ -618,32 +626,33 @@ func (kyfw *Kyfw) GetOrderTicketQueueInfo(trainDate,trainNo,trainCode,seatType,s
 	}
 	return nil
 }
+
 //加入购买队列
 func (kyfw *Kyfw) JoinBuyTicketQueue(ticketStr, passengerStr string) error {
 	kyfw.OrderJoinBuyNumber++
-	params := fmt.Sprintf("passengerTicketStr=%s&oldPassengerStr=%s&randCode=&purpose_codes=00&key_check_isChange=%s&leftTicketStr=%s&train_location=%s&choose_seats=&seatDetailType=000&whatsSelect=1&roomType=00&dwAll=N&_json_att=&REPEAT_SUBMIT_TOKEN=%s",ticketStr,passengerStr,kyfw.OrderKeyCheckIsChange,kyfw.OrderLeftTicketStr,kyfw.OrderTrainLocation,kyfw.OrderSubmitToken)
+	params := fmt.Sprintf("passengerTicketStr=%s&oldPassengerStr=%s&randCode=&purpose_codes=00&key_check_isChange=%s&leftTicketStr=%s&train_location=%s&choose_seats=&seatDetailType=000&whatsSelect=1&roomType=00&dwAll=N&_json_att=&REPEAT_SUBMIT_TOKEN=%s", ticketStr, passengerStr, kyfw.OrderKeyCheckIsChange, kyfw.OrderLeftTicketStr, kyfw.OrderTrainLocation, kyfw.OrderSubmitToken)
 	//passengerTicketStr=%s&oldPassengerStr=%s&randCode=&purpose_codes=00&key_check_isChange=%s&leftTicketStr=%s&train_location=%s&choose_seats=&seatDetailType=000&whatsSelect=1&roomType=00&dwAll=N&_json_att=&REPEAT_SUBMIT_TOKEN=%s
-	err := kyfw.Request.CreateHttpRequest(OrderJoinBuyQueue,"POST",params)
+	err := kyfw.Request.CreateHttpRequest(OrderJoinBuyQueue, "POST", params)
 	if err != nil {
 		return err
 	}
-	kyfw.Request.SetHeader("Referer","https://kyfw.12306.cn/otn/confirmPassenger/initDc")
-	kyfw.Request.SetHeader("X-Requested-With","XMLHttpRequest")
-	data,errSend := kyfw.Request.Send()
+	kyfw.Request.SetHeader("Referer", "https://kyfw.12306.cn/otn/confirmPassenger/initDc")
+	kyfw.Request.SetHeader("X-Requested-With", "XMLHttpRequest")
+	data, errSend := kyfw.Request.Send()
 	if errSend != nil {
 		return errSend
 	}
 	//没有取到数据时递归调用直到取到数据为止
 	if len(data) == 0 {
 		if kyfw.OrderJoinBuyNumber <= kyfw.MaxLoopNumber {
-			time.Sleep(1*time.Second)
 			return kyfw.JoinBuyTicketQueue(ticketStr, passengerStr)
 		}
 		return errors.New("加入购买队列失败")
 	}
+	beego.Info("BuyQueue:", string(data))
 	kyfw.OrderJoinBuyNumber = 0
 	var joinRes map[string]interface{}
-	errJosn := json.Unmarshal(data,&joinRes)
+	errJosn := json.Unmarshal(data, &joinRes)
 	if errJosn != nil {
 		return errJosn
 	}
@@ -661,27 +670,27 @@ func (kyfw *Kyfw) JoinBuyTicketQueue(ticketStr, passengerStr string) error {
 //获取取票码
 func (kyfw *Kyfw) GetTicketCode() error {
 	kyfw.OrderQueryWaitNumber++
-	err := kyfw.Request.CreateHttpRequest(fmt.Sprintf(OrderGetTicketCode,kyfw.OrderSubmitToken),"GET",nil)
+	err := kyfw.Request.CreateHttpRequest(fmt.Sprintf(OrderGetTicketCode, kyfw.OrderSubmitToken), "GET", nil)
 	if err != nil {
 		return err
 	}
-	kyfw.Request.SetHeader("Referer","https://kyfw.12306.cn/otn/confirmPassenger/initDc")
-	kyfw.Request.SetHeader("X-Requested-With","XMLHttpRequest")
-	data,errSend := kyfw.Request.Send()
+	kyfw.Request.SetHeader("Referer", "https://kyfw.12306.cn/otn/confirmPassenger/initDc")
+	kyfw.Request.SetHeader("X-Requested-With", "XMLHttpRequest")
+	data, errSend := kyfw.Request.Send()
 	if errSend != nil {
 		return errSend
 	}
 	//没有取到数据时递归调用直到取到数据为止
 	if len(data) == 0 {
 		if kyfw.OrderQueryWaitNumber <= kyfw.MaxLoopNumber {
-			time.Sleep(1*time.Second)
 			return kyfw.GetTicketCode()
 		}
 		return errors.New("下单成功,获取取票码数据失败")
 	}
+	beego.Info("Wiat:", string(data))
 	kyfw.OrderQueryWaitNumber = 0
 	var tickRes map[string]interface{}
-	errJosn := json.Unmarshal(data,&tickRes)
+	errJosn := json.Unmarshal(data, &tickRes)
 	if errJosn != nil {
 		return errJosn
 	}
@@ -696,10 +705,9 @@ func (kyfw *Kyfw) GetTicketCode() error {
 		case nil:
 			return errors.New(tickData["msg"].(string))
 		case string:
-			return nil	 
+			return nil
 		}
-	}else{
-		time.Sleep(1*time.Second)
+	} else {
 		return kyfw.GetTicketCode()
 	}
 	return nil

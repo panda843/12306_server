@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/astaxie/beego"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -26,11 +25,11 @@ type Request struct {
 }
 
 //初始化Request
-func InitRequest() *Request{
+func InitRequest() *Request {
 	req := &Request{
-		HttpClient:&http.Client{},
-		HttpRequest:&http.Request{},
-		HttpResponse:&http.Response{},
+		HttpClient:   &http.Client{},
+		HttpRequest:  &http.Request{},
+		HttpResponse: &http.Response{},
 	}
 	//初始化CookieJar
 	req.HttpClient.Jar, _ = cookiejar.New(&cookiejar.Options{
@@ -63,16 +62,12 @@ func (request *Request) CreateHttpRequest(requestUrl, method string, val interfa
 	var nErr error
 	switch data := val.(type) {
 	case string:
-		beego.Debug("params:", val.(string))
 		nReq, nErr = http.NewRequest(method, requestUrl, io.Reader(bytes.NewBuffer([]byte(data))))
 	case []byte:
-		beego.Debug("params:", string(val.([]byte)))
 		nReq, nErr = http.NewRequest(method, requestUrl, io.Reader(bytes.NewBuffer(data)))
 	case url.Values:
-		beego.Debug("params:", strings.NewReader(data.Encode()))
 		nReq, nErr = http.NewRequest(method, requestUrl, strings.NewReader(data.Encode()))
 	case *url.Values:
-		beego.Debug("params:", strings.NewReader(data.Encode()))
 		nReq, nErr = http.NewRequest(method, requestUrl, strings.NewReader(data.Encode()))
 	default:
 		nReq, nErr = http.NewRequest(method, requestUrl, nil)
@@ -127,12 +122,6 @@ func ReadHttpResponseData(request *Request) ([]byte, error) {
 
 //发送Request请求
 func SendHttpRequest(request *Request) error {
-	for k, v := range request.HttpClient.Jar.Cookies(request.HttpRequest.URL) {
-		beego.Debug("Cookie:", k, v)
-	}
-	for k, v := range request.HttpRequest.Header {
-		beego.Debug("Header:", k, v)
-	}
 	//判断Post请求,设置Header头Content-Type
 	if strings.ToUpper(request.HttpRequest.Method) == "POST" {
 		request.SetHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-")
