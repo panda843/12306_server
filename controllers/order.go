@@ -1,13 +1,5 @@
 package controllers
 
-import (
-
-	// "github.com/chuanshuo843/12306_server/utils/kyfw"
-)
-
-// var (
-// 	kyfwOrder kyfw.Order
-// )
 
 // PassengerController Operations about object
 type OrderController struct {

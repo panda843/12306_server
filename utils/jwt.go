@@ -36,7 +36,8 @@ type Jwt struct {
 }
 
 //JWT 初始化
-func (jwt *Jwt) InitJwt() {
+func InitJwt() *Jwt{
+	jwt := &Jwt{}
 	//设置Header
 	jwt.Header.JwtAlg = "HS256"
 	jwt.Header.JwtHead = "JWT"
@@ -46,6 +47,7 @@ func (jwt *Jwt) InitJwt() {
 	jwt.Payload.Aud = "https://www.ganktools.com"
 	//设置加密秘钥
 	jwt.Secret.Key = "jwt_key"
+	return jwt
 }
 
 //编码JWT的Header头

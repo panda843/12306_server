@@ -47,4 +47,20 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
+	beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:TaskController"] = append(beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:TaskController"],
+		beego.ControllerComments{
+			Method: "Get",
+			Router: `/`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:TaskController"] = append(beego.GlobalControllerRouter["github.com/chuanshuo843/12306_server/controllers:TaskController"],
+		beego.ControllerComments{
+			Method: "Post",
+			Router: `/`,
+			AllowHTTPMethods: []string{"post"},
+			MethodParams: param.Make(),
+			Params: nil})
+
 }

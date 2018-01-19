@@ -69,8 +69,7 @@ func Auth(ctx *context.Context) {
 			return
 		}
 		token := kv[1]
-		jwt := &utils.Jwt{}
-		jwt.InitJwt()
+		jwt := utils.InitJwt()
 		if !jwt.Checkd(token) {
 			AllowCross(ctx)
 			return

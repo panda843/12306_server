@@ -1,11 +1,5 @@
 package controllers
 
-import (
-	// "strings"
-	// "github.com/astaxie/beego"
-	// "github.com/chuanshuo843/12306_server/utils/kyfw"
-)
-
 
 // StationController Operations about object
 type StationController struct {
@@ -25,6 +19,6 @@ func (s *StationController) Get() {
 		return
 	}
 	//缓存12个小时
-	s.Ctx.Output.Header("Cache-Control:", "public,max-age=43200")
+	//s.Ctx.Output.Header("Cache-Control:", "public,max-age=43200")
 	s.Success().SetData(data).Send()
 }
