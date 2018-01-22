@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"strings"
 
@@ -18,17 +20,20 @@ type _ResData struct {
 // Operations about Users
 type BaseController struct {
 	beego.Controller
-	res   _ResData
-	Kyfw  *utils.Kyfw
-	AppID string
+	res    _ResData
+	Kyfw   *utils.Kyfw
+	AppID  string
+	UserID string
 }
 
 var (
 	kyfws *utils.KyfwList
+	tasks *utils.TaskList
 )
 
 func init() {
 	kyfws = utils.InitKyfwList()
+	tasks = utils.InitTaskList()
 }
 
 func (b *BaseController) Prepare() {
@@ -42,6 +47,9 @@ func (b *BaseController) Prepare() {
 		b.Fail().SetMsg("登录信息失效,请重新登录").Send()
 		return
 	}
+	hasher := md5.New()
+	hasher.Write([]byte(b.UserID))
+	b.UserID = hex.EncodeToString(hasher.Sum(nil))
 }
 
 // 获取用户数据 .
@@ -52,6 +60,7 @@ func (b *BaseController) GetUserKyfw() {
 	}
 	//获取用户数据,没登录使用APPID,登录使用Token,同时存在则以Token为准
 	b.AppID = b.GetString("app_id")
+	b.UserID = b.AppID
 	if b.AppID != "" {
 		b.Kyfw = kyfws.Get(b.AppID)
 	}
@@ -59,6 +68,7 @@ func (b *BaseController) GetUserKyfw() {
 	if authString != "" {
 		kv := strings.Split(authString, " ")
 		if len(kv) == 2 || kv[0] == "Bearer" {
+			b.UserID = kv[1]
 			b.Kyfw = kyfws.Get(kv[1])
 		}
 	}

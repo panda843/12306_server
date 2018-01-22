@@ -64,6 +64,7 @@ type Kyfw struct {
 	OrderKeyCheckIsChange string
 	OrderLeftTicketStr    string
 	OrderTrainLocation    string
+	OrderTicketCode       string
 	LoginNumber           int
 	CheckLoginNumber      int
 	QueryNumber           int
@@ -158,6 +159,7 @@ func (kyfw *Kyfw) Get12306Token(appToken string) error {
 	}
 	kyfw.Request.SetHeader("Referer", "https://kyfw.12306.cn/otn/passport?redirect=/otn/login/userLogin")
 	data, errSend := kyfw.Request.Send()
+	beego.Debug("Get12306Token:", string(data))
 	if errSend != nil {
 		return errSend
 	}
@@ -522,7 +524,7 @@ func (kyfw *Kyfw) InitConfirmOrder() error {
 		return errors.New("获取leftTicketStr失败")
 	}
 	if len(ticketSource[0]) == 0 {
-		return errors.New("���取leftTicketStr失败")
+		return errors.New("获取leftTicketStr失败")
 	}
 	ticketStr := strings.Split(ticketSource[0][0], `'`)[3]
 	kyfw.OrderLeftTicketStr = ticketStr
@@ -705,6 +707,7 @@ func (kyfw *Kyfw) GetTicketCode() error {
 		case nil:
 			return errors.New(tickData["msg"].(string))
 		case string:
+			kyfw.OrderTicketCode = tickData["orderId"].(string)
 			return nil
 		}
 	} else {

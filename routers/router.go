@@ -44,11 +44,11 @@ func init() {
 				&controllers.PassengerController{},
 			),
 		),
-		//订单处理
-		beego.NSNamespace("/order",
+		//任务管理
+		beego.NSNamespace("/task",
 			beego.NSBefore(Auth),
 			beego.NSInclude(
-				&controllers.OrderController{},
+				&controllers.TaskController{},
 			),
 		),
 	)
