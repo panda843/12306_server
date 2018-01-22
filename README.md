@@ -1,4 +1,5 @@
-#12306API接口
+# 12306API接口
+
 ```golang
 const (
 	//用户登录Init
@@ -37,3 +38,4 @@ const (
 	QueryPassenger = "https://kyfw.12306.cn/otn/confirmPassenger/getPassengerDTOs"
 )
 ```
+
